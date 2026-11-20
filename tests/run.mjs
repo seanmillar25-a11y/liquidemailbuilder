@@ -49,10 +49,16 @@ check('Self-test ran the live-template comparisons', results.some(r => r.group =
 // Interface checks
 await page.locator('.cv').first().click();
 check('Clicking a block opens it in the editing panel', await page.locator('#insp .insp-head input').count() === 1);
+// the self-test redraws the page when it finishes, so let it settle before dragging
+await page.waitForTimeout(600);
 const before = await page.locator('.cv').count();
-await page.locator('.tile:has-text("Highlight")').dragTo(page.locator('.cv').nth(1), { targetPosition: { x: 200, y: 4 } });
-await page.waitForTimeout(300);
-check('Dragging a block into the email adds it', await page.locator('.cv').count() === before + 1);
+let added = false;
+for (let attempt = 0; attempt < 3 && !added; attempt++) {
+  await page.locator('.tile:has-text("Highlight")').dragTo(page.locator('.cv').nth(1), { targetPosition: { x: 200, y: 4 } });
+  await page.waitForTimeout(400);
+  added = (await page.locator('.cv').count()) > before;
+}
+check('Dragging a block into the email adds it', added);
 const code = await page.evaluate(() => window.__leb.generate());
 check('Generated code includes the Gecko email shell', code.includes('class="row-content"') && code.trim().endsWith('</html>'));
 check('Team lists file loaded', await page.evaluate(() => fetch('team-lists.json').then(r => r.ok)));

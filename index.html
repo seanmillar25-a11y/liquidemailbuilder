@@ -505,7 +505,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.0.0';
+const APP_VERSION='1.1.0';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc
@@ -1622,6 +1622,19 @@ function fieldEl(label,obj,key,opts){
       h('span',{class:'hint'},'Blank line = new paragraph')
     ));
   }
+  if(opts.toolbar){
+    input.addEventListener('paste',e=>{
+      const txt=(e.clipboardData||window.clipboardData).getData('text');
+      if(!txt||!(/(?<!\])\(\s*(https?:\/\/|www\.)/i.test(txt)||/\{\?(url|b)\?\}|\*link to:/i.test(txt)))return;
+      e.preventDefault();
+      const conv=convertShorthand(txt,null);
+      const st=input.selectionStart,en=input.selectionEnd;
+      input.value=input.value.slice(0,st)+conv+input.value.slice(en);
+      input.setSelectionRange(st+conv.length,st+conv.length);
+      obj[key]=input.value;refresh();
+      toast('Links converted. Check the linked words are right');
+    });
+  }
   wrap.appendChild(input);
   return wrap;
 }
@@ -2158,6 +2171,10 @@ function convertShorthand(t,programme){
   t=t.replace(/([A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)\s*\(\s*mailto:[^)]*\)/g,'$1');
   t=t.replace(/\s*\(?\s*\{\?url\?\}\s*(\S+?)\s*\{\?\/url\?\}\s*\)?/g,(m,u)=>`\u0004${u}\u0004`);
   t=t.replace(/\s*\*link to:\s*(\S+?)\s*\*/gi,(m,u)=>`\u0004${u}\u0004`);
+  // A web address in brackets straight after some words: "Accounting and Finance (https://…)" links those words.
+  // Bracketed text that isn't a web address, e.g. "(Guardian University Guide 2027)", is left alone,
+  // as are links already written as [text](url).
+  t=t.replace(/(?<!\])\(\s*((?:https?:\/\/|www\.)[^\s()]+(?:\([^\s()]*\)[^\s()]*)*)\s*\)/gi,(m,u)=>`\u0004${/^www\./i.test(u)?'https://'+u:u}\u0004`);
   const parts=t.split(/\u0004(\S+?)\u0004/);
   let out=parts[0];
   for(let k=1;k<parts.length;k+=2){
@@ -2371,6 +2388,18 @@ async function selfTest(){
       const wrong=C.items.filter(it=>classifyCourse(it.name,C)!==it.key).map(it=>it.name);
       add('Course matching',`${lv}: all ${C.items.length} courses match their own rule and no other`,!C.issues.length&&!wrong.length,[...C.issues,...wrong.map(w=>'Mismatched: '+esc(w))].join('<br>'));
     });
+    // 1b. matrix link shorthand
+    const U='https://www.abertay.ac.uk/course-search/undergraduate/bsc-accounting-and-finance/';
+    [
+      ['Web address in brackets',`Studying Accounting and Finance (${U}) at Abertay University is a great choice, especially because we're the Top Modern University in Scotland (Guardian University Guide 2027).`,'Accounting and Finance',
+       `Studying [Accounting and Finance](${U}) at Abertay University is a great choice, especially because we're the Top Modern University in Scotland (Guardian University Guide 2027).`],
+      ['Web address in brackets, no course name given',`apply to the Student Award Agency Scotland (SAAS) (https://www.saas.gov.uk/) for funding.`,null,
+       `apply to the [Student Award Agency Scotland (SAAS)](https://www.saas.gov.uk/) for funding.`],
+      ['www. address and trailing comma',`see our Scholarships, (www.abertay.ac.uk/scholarships/) or call us.`,null,
+       `see our [Scholarships](https://www.abertay.ac.uk/scholarships/), or call us.`],
+      ['{?url?} tag',`Studying Law ({?url?}https://www.abertay.ac.uk/law/{?/url?}) at Abertay`,'Law',`Studying [Law](https://www.abertay.ac.uk/law/) at Abertay`],
+      ['Existing [text](url) links are left alone',`Read the [course page](https://www.abertay.ac.uk/x/) today.`,null,`Read the [course page](https://www.abertay.ac.uk/x/) today.`],
+    ].forEach(([name,input,prog,want])=>{const got=convertShorthand(input,prog);add('Matrix links',name,got===want,got===want?'':'Got: '+esc(got));});
     // 2. save and re-open
     const kinds=[['example-pg','PG example'],['example-ug','UG example'],['s-course','Course email structure'],['s-domicile','Domicile email structure'],['s-news','Event / newsletter structure']];
     const codes=[];
