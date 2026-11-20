@@ -505,7 +505,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.3.0';
+const APP_VERSION='1.3.1';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc
@@ -2157,18 +2157,34 @@ function loadXLSX(){
   if(window.XLSX) return Promise.resolve(window.XLSX);
   return new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='vendor/xlsx.full.min.js';sc.onload=()=>res(window.XLSX);sc.onerror=()=>rej(new Error('load'));document.head.appendChild(sc);});
 }
-const LINK_STOP=new Set(['studying','study','taking','our','the','a','an','in','at','on','to','visit','see','through']);
-const LINK_JOIN=new Set(['and','of','for','the','&','in','with','de','to']);
+// Which words become the link, when a web address follows them in brackets:
+//  1. the row's course name, if the text ends with it;
+//  2. otherwise the run of name-like words before the brackets ("Student Awards Agency Scotland (SAAS)",
+//     "Abertay rUK Scholarship"), allowing small joining words inside the run ("and", "of", "the"...);
+//  3. otherwise up to four plain words, stopping at words like "our", "the", "of" ("cyber security labs").
+const LINK_STOP=new Set(['studying','study','taking','our','the','a','an','in','at','on','to','of','about','visit','see','through','your','this','these','with','for','and','from','into','by']);
+const LINK_JOIN=new Set(['and','of','for','the','&','in','with','de','on']);
+const LINK_VERBS=new Set(['apply','read','visit','see','find','discover','explore','check','learn','studying','study','taking','join','book','register','watch','download','view','take']);
 function linkPhrase(before,programme){
   let b=before.replace(/[\s(]+$/,'');
   let trail='';const tm=b.match(/[,.;:]+$/);if(tm){trail=tm[0];b=b.slice(0,-trail.length);}
   if(programme){const p=programme.trim();if(p&&b.toLowerCase().endsWith(p.toLowerCase()))return {head:b.slice(0,b.length-p.length),phrase:b.slice(b.length-p.length),trail};}
   const words=b.split(' ');const run=[];
-  for(let k=words.length-1;k>=0;k--){const w=words[k];if(!w)break;
-    if(/^\(?[A-Z0-9]/.test(w)||(run.length&&LINK_JOIN.has(w.toLowerCase())))run.unshift(w);else break;}
-  while(run.length&&(LINK_JOIN.has(run[0].toLowerCase())||LINK_STOP.has(run[0].toLowerCase())))run.shift();
-  if(!run.length){const last=words.slice(-2);return {head:words.slice(0,-2).join(' ')+(words.length>2?' ':''),phrase:last.join(' '),trail};}
-  const phrase=run.join(' ');return {head:b.slice(0,b.length-phrase.length),phrase,trail};
+  const nameLike=w=>/[A-Z0-9]/.test(w.replace(/^[("'“‘]+/,'').charAt(0))||/^\(?[a-z]+[A-Z]/.test(w)||/^\([A-Z]/.test(w);
+  let k=words.length-1;
+  for(;k>=0;k--){const w=words[k];if(!w)break;
+    if(run.length&&/[.!?:;,]$/.test(w))break;
+    if(nameLike(w)||(run.length&&LINK_JOIN.has(w.toLowerCase())))run.unshift(w);else break;}
+  while(run.length&&(LINK_JOIN.has(run[0].toLowerCase())||LINK_STOP.has(run[0].toLowerCase())||LINK_VERBS.has(run[0].toLowerCase())))run.shift();
+  let phrase;
+  if(run.length) phrase=run.join(' ');
+  else {
+    const pick=[];
+    for(let j=words.length-1;j>=0&&pick.length<4;j--){const w=words[j];if(!w||(pick.length&&/[.!?:;,]$/.test(w))||LINK_STOP.has(w.toLowerCase()))break;pick.unshift(w);}
+    if(!pick.length) pick.push(words[words.length-1]||'');
+    phrase=pick.join(' ');
+  }
+  return {head:b.slice(0,b.length-phrase.length),phrase,trail};
 }
 function convertShorthand(t,programme){
   t=String(t==null?'':t).replace(/﻿/g,'').replace(/\r/g,'');
@@ -2409,6 +2425,10 @@ async function selfTest(){
       ['www. address and trailing comma',`see our Scholarships, (www.abertay.ac.uk/scholarships/) or call us.`,null,
        `see our [Scholarships](https://www.abertay.ac.uk/scholarships/), or call us.`],
       ['{?url?} tag',`Studying Law ({?url?}https://www.abertay.ac.uk/law/{?/url?}) at Abertay`,'Law',`Studying [Law](https://www.abertay.ac.uk/law/) at Abertay`],
+      ['Stops before “Apply to the”',`Apply to the Student Awards Agency Scotland (SAAS) (https://www.saas.gov.uk/) for funding.`,null,`Apply to the [Student Awards Agency Scotland (SAAS)](https://www.saas.gov.uk/) for funding.`],
+      ['Keeps words like “rUK” in the link',`We offer the Abertay rUK Scholarship (https://www.abertay.ac.uk/s/) worth £1,000.`,null,`We offer the [Abertay rUK Scholarship](https://www.abertay.ac.uk/s/) worth £1,000.`],
+      ['Plain words: links the phrase, not just the last two words',`Read about our cyber security labs *link to: https://www.abertay.ac.uk/research/cyber/* and more.`,null,`Read about our [cyber security labs](https://www.abertay.ac.uk/research/cyber/) and more.`],
+      ['Plain words: stops at “of”',`We offer a range of international scholarships (https://www.abertay.ac.uk/s/).`,null,`We offer a range of [international scholarships](https://www.abertay.ac.uk/s/).`],
       ['Existing [text](url) links are left alone',`Read the [course page](https://www.abertay.ac.uk/x/) today.`,null,`Read the [course page](https://www.abertay.ac.uk/x/) today.`],
     ].forEach(([name,input,prog,want])=>{const got=convertShorthand(input,prog);add('Matrix links',name,got===want,got===want?'':'Got: '+esc(got));});
     {

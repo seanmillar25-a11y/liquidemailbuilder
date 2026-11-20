@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1 · 2026-11-20
+
+Smarter choice of linked words (found with the test content matrix):
+- "Apply to the Student Awards Agency Scotland (SAAS) (https://…)" links "Student Awards Agency Scotland (SAAS)", not "Apply to the…".
+- Words with capitals inside, like "rUK", stay in the link ("Abertay rUK Scholarship").
+- Without a capitalised name, the link covers the phrase ("cyber security labs", "international scholarships") instead of just the last two words.
+
 ## 1.3.0 · 2026-11-20
 
 Matrix import fixes, found in "Email 1 Course 2025 Version":
