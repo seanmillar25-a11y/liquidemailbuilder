@@ -505,7 +505,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.2.1';
+const APP_VERSION='1.3.0';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc
@@ -949,7 +949,7 @@ function renderBlockHTML(type,c,ctx){
   if(type==='button'){
     let out='';
     if(String(c.prompt||'').trim()) out+=`<p style="${ST.p}"><strong style="${ST.b}">${inline(c.prompt.trim(),ctx)}</strong></p>`;
-    if(String(c.url||'').trim()&&String(c.label||'').trim()) out+=(out?'\n':'')+buttonHTML(tagUrl(c.url.trim(),ctx),inline(c.label.trim(),ctx));
+    if(String(c.url||'').trim()) out+=(out?'\n':'')+buttonHTML(tagUrl(c.url.trim(),ctx),inline(String(c.label||'').trim()||'Find out more',ctx));
     return out;
   }
   return '';
@@ -1515,6 +1515,8 @@ function runChecks(){
     if(blankLinks) add('bad',`${t}: has a link with no web address yet: <code>[…](https://)</code>.`);
     const plainUrl=versions.some(c=>['text','title','items','intro','prompt'].some(f=>{const t=String(c[f]||'').replace(/\[[^\]]*\]\([^)]*\)/g,'').replace(/\((?:https?:\/\/|www\.)[^)]*\)/gi,'');return /(https?:\/\/|www\.)\S+/i.test(t);}));
     if(plainUrl) add('warn',`${t}: a web address will show as plain text. Put it in brackets after the words to link, e.g. <code>Psychology (https://…)</code>, or use the Link button.`);
+    if(b.type==='button'&&versions.some(c=>String(c.url||'').trim()&&!String(c.label||'').trim())) add('info',`${t}: a button has no text, so it says “Find out more”.`);
+    if((b.type==='image'||b.type==='twocol')&&versions.some(c=>/\s/.test(String(c.src||'').trim()))) add('bad',`${t}: an image address contains spaces or several addresses, so the image will be broken.`);
     if(b.type==='button'&&versions.some(c=>String(c.label||'').trim()&&!String(c.url||'').trim())) add('warn',`${t}: a button has text but no link, so it won't show.`);
     if(b.mode==='all'){
       if(!renderBlockHTML(b.type,b.content,{liquid:true})) add('warn',`${t}: has no content yet, so nothing will show.`);
@@ -2190,7 +2192,10 @@ function convertShorthand(t,programme){
 function guessCol(hd){
   const x=String(hd||'').toLowerCase();
   if(!x.trim())return 'ignore';
-  if(/secondary|reviewer|status|notes?$|owner/.test(x))return 'ignore';
+  if(/secondary (link|url)|reviewer|status|notes?$|owner/.test(x))return 'ignore';
+  // the programme name itself, Gecko's banner (the template wrapper already adds it) and social icons aren't email blocks
+  if(/programme|variant|course name|^course$|pathway/.test(x))return 'ignore';
+  if(/header image|banner|other image|social|icons?\b/.test(x))return 'ignore';
   if(/cta prompt|button prompt/.test(x))return 'bprompt';
   if(/cta text|button text/.test(x))return 'blabel';
   if(/cta url|cta link|primary link|button (url|link)/.test(x))return 'burl';
@@ -2274,8 +2279,8 @@ function mxImport(){
   units.forEach(u=>{
     const contentFor=row=>{
       const g=k=>String(row.r[k]==null?'':row.r[k]);
-      if(u.type==='image') return {src:g(u.cols.src).trim(),alt:'',href:''};
-      if(u.type==='button') return {prompt:u.cols.prompt!=null?convertShorthand(g(u.cols.prompt),row.name).replace(/^\*\*([\s\S]*)\*\*$/,'$1'):'',label:u.cols.label!=null?g(u.cols.label).trim():'Find out more',url:u.cols.url!=null?g(u.cols.url).trim():''};
+      if(u.type==='image'){const srcs=g(u.cols.src).trim().split(/\s+/).filter(Boolean);if(srcs.length>1)u.multi=true;return {src:srcs[0]||'',alt:'',href:''};}
+      if(u.type==='button') return {prompt:u.cols.prompt!=null?convertShorthand(g(u.cols.prompt),row.name).replace(/^\*\*([\s\S]*)\*\*$/,'$1'):'',label:(u.cols.label!=null?g(u.cols.label).trim():'')||'Find out more',url:u.cols.url!=null?g(u.cols.url).trim():''};
       return {text:convertShorthand(g(u.cols.text),row.name).replace(u.type==='heading'?/^\*\*([\s\S]*)\*\*$/:/$^/,'$1')};
     };
     const items=rows.map(row=>({row,c:contentFor(row),key:''})); items.forEach(x=>x.key=JSON.stringify(x.c));
@@ -2296,6 +2301,9 @@ function mxImport(){
   });
   if($('#mxSignoff').checked) blocks.push(newBlock('text','Sign-off',{text:'All the best,\nThe Abertay Team'}));
   const imgs=units.filter(u=>u.type==='image').length;
+  units.filter(u=>u.multi).forEach(u=>report.push(`“${esc(u.label)}” had several image addresses in one cell, so only the first was used.`));
+  const skipped=MX.headers.filter((hd,k)=>hd&&k!==ai&&MX.map[k]==='ignore');
+  if(skipped.length) report.push(`Not used: ${skipped.map(esc).join(', ')}. Gecko's template already adds the banner, so header images are skipped. Change any of these in the column list if you need them.`);
   if(imgs) report.push('Images were added where their column sits in the matrix. Drag them into place, and add alt text (the Checks tab lists what\'s missing).');
   report.unshift(`Imported ${rows.length} rows from “${esc($('#mxSheet').value)}” into ${blocks.length} blocks. Links and bold text from the matrix shorthand were converted, so check the linked words in each block.`);
   const email={name:$('#mxSheet').value,level:lvl,settings:clone(state.settings),blocks};
@@ -2409,6 +2417,13 @@ async function selfTest(){
       const btn=renderBlockHTML('button',{prompt:'',label:'Find out more',url:'https://www.abertay.ac.uk/'},{liquid:true});
       add('Email layout','Button padding is on the table cell, so it can’t collapse',/<td[^>]*padding:14px 24px/.test(btn)&&!/<a[^>]*padding/.test(btn));
       add('Email layout','Email width is 600px without depending on a mobile rule',/width:600px;max-width:100%/.test(SHELL_TOP)&&!/\.row-content\s*\{/.test(SHELL_TOP));
+    }
+    {
+      const want={'Programme / variant':'ignore','Header image src':'ignore','Other image srcs (all)':'ignore','Intro copy':'text','CTA prompt':'bprompt','Primary link URL':'burl','Hero image':'image','Hero/secondary image src':'image','Secondary link URL':'ignore','Next-step heading':'heading'};
+      const wrong=Object.entries(want).filter(([hd,w])=>guessCol(hd)!==w).map(([hd,w])=>`${esc(hd)} → ${guessCol(hd)} (expected ${w})`);
+      add('Matrix import','Columns are given the right job (programme name and banner skipped)',!wrong.length,wrong.join('<br>'));
+      const bt=renderBlockHTML('button',{prompt:'Find out more 👇',label:'',url:'https://www.abertay.ac.uk/'},{liquid:true});
+      add('Matrix import','A button with a link but no text still appears, as “Find out more”',/>Find out more<\/a>/.test(bt));
     }
     // 2. save and re-open
     const kinds=[['example-pg','PG example'],['example-ug','UG example'],['s-course','Course email structure'],['s-domicile','Domicile email structure'],['s-news','Event / newsletter structure']];

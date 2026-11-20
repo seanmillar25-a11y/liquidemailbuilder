@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 · 2026-11-20
+
+Matrix import fixes, found in "Email 1 Course 2025 Version":
+- Buttons with a link but an empty button-text column now appear, as "Find out more" (they were silently left out, so the CTA had no button).
+- The programme/variant column, header image (Gecko's wrapper already adds the banner) and social-icon columns are no longer turned into blocks by default. The import report lists every column it didn't use.
+- An image cell with several addresses uses the first one, and the report says so.
+- New checks: image addresses containing spaces; buttons without text.
+
 ## 1.2.1 · 2026-11-20
 
 - Shows a "newer version available" bar when the live site has been updated, so nobody builds or copies emails with an old cached copy.
