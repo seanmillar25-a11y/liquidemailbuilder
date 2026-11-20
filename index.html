@@ -505,7 +505,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.1.0';
+const APP_VERSION='1.2.0';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc
@@ -863,6 +863,8 @@ function inline(text,ctx){
     });
   const basic=t=>merge(esc(t).replace(/\*\*(.+?)\*\*/g,`<strong style="${ST.b}">$1</strong>`));
   let s=String(text||'');
+  // "Psychology (https://…)" typed or pasted any way at all still becomes a link on "Psychology"
+  if(/(?<!\])\(\s*(?:https?:\/\/|www\.)/i.test(s)) s=convertShorthand(s,null);
   s=s.replace(/\[([^\]]+)\]\(\s*([^)\s]+)\s*\)/g,(m,t,u)=>{
     if(!/^(https?:|mailto:|tel:|\{\{)/i.test(u)&&/^[^@\s]+@[^@\s]+$/.test(u))u='mailto:'+u;
     return put(`<a href="${esc(tagUrl(u,ctx))}" target="_blank" style="${ST.a}">${basic(t)}</a>`);
@@ -875,7 +877,9 @@ function inline(text,ctx){
    so Outlook desktop draws a full button; other clients get a full-width clickable link.
    No conditional comments, so nothing breaks if Gecko's editor strips comments. */
 function buttonHTML(url,label){
-  return `<table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 24px 0;border-collapse:separate;"><tr><td align="center" bgcolor="#32DDE9" style="background-color:#32DDE9;border-radius:10px;mso-padding-alt:14px 24px;"><a href="${esc(url)}" target="_blank" style="display:block;padding:14px 24px;color:#000000;text-decoration:none;${F}font-size:18px;line-height:1.2;font-weight:700;text-align:center;border-radius:10px;mso-line-height-rule:exactly;">${label}</a></td></tr></table>`;
+  // Padding lives on the table cell, not the link: Outlook and some security gateways strip padding
+  // from links, which collapsed the button into a thin bar. Cell padding survives everywhere.
+  return `<table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 24px 0;border-collapse:separate;"><tr><td align="center" valign="middle" bgcolor="#32DDE9" style="background-color:#32DDE9;border-radius:10px;padding:14px 24px;${F}font-size:18px;line-height:22px;font-weight:700;text-align:center;mso-line-height-rule:exactly;"><a href="${esc(url)}" target="_blank" style="color:#000000;text-decoration:none;${F}font-size:18px;line-height:22px;font-weight:700;display:inline-block;">${label}</a></td></tr></table>`;
 }
 /* UTM tagging for links on the domains listed in team settings */
 function tagUrl(u,ctx){
@@ -1085,9 +1089,6 @@ const SHELL_TOP=`<html>
       }
 
       @media (max-width:620px) {
-        .row-content {
-          width: 100% !important;
-        }
         .stack-col {
           display: block !important;
           width: 100% !important;
@@ -1101,15 +1102,15 @@ const SHELL_TOP=`<html>
     </style>
   </head>
 
-  <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#ffffff;">
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#ffffff;width:100%;table-layout:fixed;">
     <tr>
       <td>
 
-        <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+        <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:100%;table-layout:fixed;">
           <tr>
             <td>
 
-              <table class="row-content" align="center" width="600" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto;color:#000000;width:600px;">
+              <table class="row-content" align="center" width="600" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto;color:#000000;width:600px;max-width:100%;">
                 <tr>
                   <td style="padding:0 5px 30px 5px;vertical-align:top;">
 
@@ -1512,6 +1513,8 @@ function runChecks(){
     }
     const blankLinks=versions.reduce((n,c)=>n+((JSON.stringify(c).match(/\]\(https?:\/\/\)/g)||[]).length),0);
     if(blankLinks) add('bad',`${t}: has a link with no web address yet: <code>[…](https://)</code>.`);
+    const plainUrl=versions.some(c=>['text','title','items','intro','prompt'].some(f=>{const t=String(c[f]||'').replace(/\[[^\]]*\]\([^)]*\)/g,'').replace(/\((?:https?:\/\/|www\.)[^)]*\)/gi,'');return /(https?:\/\/|www\.)\S+/i.test(t);}));
+    if(plainUrl) add('warn',`${t}: a web address will show as plain text. Put it in brackets after the words to link, e.g. <code>Psychology (https://…)</code>, or use the Link button.`);
     if(b.type==='button'&&versions.some(c=>String(c.label||'').trim()&&!String(c.url||'').trim())) add('warn',`${t}: a button has text but no link, so it won't show.`);
     if(b.mode==='all'){
       if(!renderBlockHTML(b.type,b.content,{liquid:true})) add('warn',`${t}: has no content yet, so nothing will show.`);
@@ -2400,6 +2403,13 @@ async function selfTest(){
       ['{?url?} tag',`Studying Law ({?url?}https://www.abertay.ac.uk/law/{?/url?}) at Abertay`,'Law',`Studying [Law](https://www.abertay.ac.uk/law/) at Abertay`],
       ['Existing [text](url) links are left alone',`Read the [course page](https://www.abertay.ac.uk/x/) today.`,null,`Read the [course page](https://www.abertay.ac.uk/x/) today.`],
     ].forEach(([name,input,prog,want])=>{const got=convertShorthand(input,prog);add('Matrix links',name,got===want,got===want?'':'Got: '+esc(got));});
+    {
+      const html=renderBlockHTML('text',{text:'Studying Psychology (https://www.abertay.ac.uk/course-search/undergraduate/psychology/) at Abertay University is a great choice.'},{liquid:true});
+      add('Matrix links','Typed text with a web address in brackets is linked in the email',/<a href="https:\/\/www\.abertay\.ac\.uk\/course-search\/undergraduate\/psychology\/"[^>]*>Psychology<\/a> at Abertay/.test(html)&&!html.includes('(https'),esc(html));
+      const btn=renderBlockHTML('button',{prompt:'',label:'Find out more',url:'https://www.abertay.ac.uk/'},{liquid:true});
+      add('Email layout','Button padding is on the table cell, so it can’t collapse',/<td[^>]*padding:14px 24px/.test(btn)&&!/<a[^>]*padding/.test(btn));
+      add('Email layout','Email width is 600px without depending on a mobile rule',/width:600px;max-width:100%/.test(SHELL_TOP)&&!/\.row-content\s*\{/.test(SHELL_TOP));
+    }
     // 2. save and re-open
     const kinds=[['example-pg','PG example'],['example-ug','UG example'],['s-course','Course email structure'],['s-domicile','Domicile email structure'],['s-news','Event / newsletter structure']];
     const codes=[];
