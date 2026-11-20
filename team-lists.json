@@ -10,6 +10,8 @@
     "utmMedium": "email",
     "utmDomains": "abertay.ac.uk",
     "pgIntl": false,
-    "embed": true
+    "embed": true,
+    "emailWidth": 700,
+    "emailPadding": 5
   }
 }

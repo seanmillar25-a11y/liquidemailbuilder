@@ -10,7 +10,7 @@
                         DEFAULT_LINKS, DEFAULT_SNIPPETS  (the team normally edits these in team-lists.json instead)
     Keyword engine .... computeCourses(): picks single-word keywords per course (Gecko hidden-character fix)
     Rendering ......... renderBlockHTML(), buttonHTML() (Outlook-safe button), tagUrl() (UTM)
-    Liquid generation . generate(), SHELL_TOP / SHELL_BOTTOM (the email wrapper)
+    Liquid generation . generate(), shellTop()/SHELL_TOP / SHELL_BOTTOM (the email wrapper; width from layout())
     Importers ......... importLiquid() (paste a live template), convertShorthand()/mxImport() (content matrix)
     UI ................ rail / canvas / inspector, drag and drop, viewing-as contact
     Hosting ........... team-lists.json, downloads, self-test (Menu → Run self-test)
@@ -85,7 +85,7 @@ svg{display:block}
 .rail .hint{font-size:12px;color:var(--ink3);margin:14px 4px 0;line-height:1.4}
 
 .stage{overflow:auto;padding:28px 24px 120px;position:relative}
-.stage-inner{max-width:640px;margin:0 auto}
+.stage-inner{max-width:var(--email-w,740px);margin:0 auto}
 .report{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 40px 12px 14px;margin-bottom:14px;font-size:13.5px;position:relative;box-shadow:var(--shadow)}
 .report ul{margin:6px 0 0;padding-left:18px}
 .report .x{position:absolute;right:6px;top:6px}
@@ -365,6 +365,14 @@ table.kw th{color:var(--ink3);font-weight:600}
         </div>
         <div class="field"><label>Domains to tag (comma separated)</label><input id="setUtmDomains"></div>
       </div>
+      <div class="sect">
+        <h3>Email layout</h3>
+        <p>Match the width of the header in your Gecko template (700px for the standard Abertay header). The side margin is the space between the edge and the text.</p>
+        <div class="two">
+          <div class="field"><label>Email width (px)</label><input id="setEmailWidth" type="number" min="320" max="900"></div>
+          <div class="field"><label>Side margin (px)</label><input id="setEmailPadding" type="number" min="0" max="60"></div>
+        </div>
+      </div>
     </div>
     <div class="modal-foot">
       <span class="left" id="setStatus"></span>
@@ -505,7 +513,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.3.1';
+const APP_VERSION='1.4.0';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc
@@ -736,7 +744,7 @@ const DEFAULT_SNIPPETS=`Contact line – SRO | ${'If we can answer any questions
 Contact line – International | ${'If we can answer any questions to help make your decision about what or where to study a little easier, please email international@abertay.ac.uk.'}
 Top Modern University line | we're the Top Modern University in Scotland (Guardian University Guide 2026)
 Sign-off | All the best,\\nThe Abertay Team`;
-function baseSettings(){return {ugCourses:DEFAULT_UG,pgCourses:DEFAULT_PG,domicile:DEFAULT_DOM,links:DEFAULT_LINKS,snippets:DEFAULT_SNIPPETS,utmSource:'gecko',utmMedium:'email',utmDomains:'abertay.ac.uk',pgIntl:false,embed:true};}
+function baseSettings(){return {ugCourses:DEFAULT_UG,pgCourses:DEFAULT_PG,domicile:DEFAULT_DOM,links:DEFAULT_LINKS,snippets:DEFAULT_SNIPPETS,utmSource:'gecko',utmMedium:'email',utmDomains:'abertay.ac.uk',pgIntl:false,embed:true,emailWidth:700,emailPadding:5};}
 function withDefaults(st){return Object.assign(baseSettings(),st||{});}
 
 function example(level){
@@ -853,6 +861,10 @@ const ST={
   btn:`background-color:#32DDE9;color:#000000;text-decoration:none;padding:14px 24px;border-radius:10px;display:block;width:100%;box-sizing:border-box;${F}font-size:18px;line-height:1.2;font-weight:700;text-align:center;`
 };
 const EMAIL_RE=/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
+/* Outlook on Windows shows emoji as an empty box unless the text names an emoji font. */
+const EMOJI_RE=/(?:\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}]{2})(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}]|\u200D\p{Extended_Pictographic}\uFE0F?)*/gu;
+const EMOJI_FONT="font-family:'Segoe UI Emoji','Segoe UI Symbol','Apple Color Emoji','Noto Color Emoji',sans-serif;";
+function emojiSafe(html){return html.replace(/(<[^>]*>)|([^<]+)/g,(m,tag,txt)=>tag?tag:txt.replace(EMOJI_RE,e=>`<span style="${EMOJI_FONT}">${e}</span>`));}
 function inline(text,ctx){
   const ph=[];const put=x=>{ph.push(x);return '\u0001'+(ph.length-1)+'\u0002';};
   const merge=t=>t.replace(/\{first_name\}/g,ctx.liquid?"{{ contact.full_name.first_name | default: 'there' }}":esc(ctx.firstName||'there'))
@@ -861,7 +873,7 @@ function inline(text,ctx){
       const v=(ctx.fields||{})[ref];
       return v?esc(v):`<span style="background:#fff3c4;border-radius:3px;padding:0 3px;">[${esc(refLabel(ref))}]</span>`;
     });
-  const basic=t=>merge(esc(t).replace(/\*\*(.+?)\*\*/g,`<strong style="${ST.b}">$1</strong>`));
+  const basic=t=>emojiSafe(merge(esc(t).replace(/\*\*(.+?)\*\*/g,`<strong style="${ST.b}">$1</strong>`)));
   let s=String(text||'');
   // "Psychology (https://…)" typed or pasted any way at all still becomes a link on "Psychology"
   if(/(?<!\])\(\s*(?:https?:\/\/|www\.)/i.test(s)) s=convertShorthand(s,null);
@@ -876,10 +888,14 @@ function inline(text,ctx){
 /* Outlook-safe button: the table cell carries the colour and (via mso-padding-alt) the padding,
    so Outlook desktop draws a full button; other clients get a full-width clickable link.
    No conditional comments, so nothing breaks if Gecko's editor strips comments. */
+/* Email layout: column width and side margin come from the team settings, to match the Gecko header (700px). */
+function layout(){const st=(state&&state.settings)||{};const W=Math.max(320,Math.min(900,parseInt(st.emailWidth,10)||700));const P=Math.max(0,Math.min(60,parseInt(st.emailPadding,10)||0));return {W,P,inner:W-2*P};}
+function shellTop(){const {W,P}=layout();return SHELL_TOP.replace('width="600"',`width="${W}"`).replace('width:600px;max-width:100%;',`width:${W}px;max-width:100%;`).replace('padding:0 5px 30px 5px;',`padding:0 ${P}px 30px ${P}px;`);}
 function buttonHTML(url,label){
-  // Padding lives on the table cell, not the link: Outlook and some security gateways strip padding
-  // from links, which collapsed the button into a thin bar. Cell padding survives everywhere.
-  return `<table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 24px 0;border-collapse:separate;"><tr><td align="center" valign="middle" bgcolor="#32DDE9" style="background-color:#32DDE9;border-radius:10px;padding:14px 24px;${F}font-size:18px;line-height:22px;font-weight:700;text-align:center;mso-line-height-rule:exactly;"><a href="${esc(url)}" target="_blank" style="color:#000000;text-decoration:none;${F}font-size:18px;line-height:22px;font-weight:700;display:inline-block;">${label}</a></td></tr></table>`;
+  // The link fills the whole button (display:block) and gets its height from line-height, not padding:
+  // Outlook and the security gateway strip padding from links, which once squashed the button into a thin bar.
+  // The cell's height and background draw the button in Outlook on Windows, where only the text is clickable.
+  return `<table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 24px 0;border-collapse:separate;"><tr><td align="center" valign="middle" height="50" bgcolor="#32DDE9" style="background-color:#32DDE9;border-radius:10px;height:50px;mso-padding-alt:0 24px;"><a href="${esc(url)}" target="_blank" style="display:block;width:100%;line-height:50px;min-height:50px;mso-line-height-rule:exactly;color:#000000;text-decoration:none;${F}font-size:18px;font-weight:700;text-align:center;border-radius:10px;">${label}</a></td></tr></table>`;
 }
 /* UTM tagging for links on the domains listed in team settings */
 function tagUrl(u,ctx){
@@ -908,10 +924,10 @@ function renderBlockHTML(type,c,ctx){
       const file=decodeURIComponent(String(c.src).split('/').pop().split('?')[0]||'image');
       img=`<div style="background:#e8e8e3;border:1px dashed #b9b9b2;color:#666;${F}font-size:13px;padding:40px 12px;text-align:center;">🖼 ${esc(c.alt||'Image')}<br><span style="font-size:11px;opacity:.75;word-break:break-all">${esc(file)}</span></div>`;
     } else {
-      img=`<img src="${esc(c.src.trim())}" style="display:block;width:100%;height:auto;border:0;margin:0;" width="590" alt="${esc(c.alt||'')}" />`;
+      img=`<img src="${esc(c.src.trim())}" style="display:block;width:100%;height:auto;border:0;margin:0;" width="${layout().inner}" alt="${esc(c.alt||'')}" />`;
     }
     if(String(c.href||'').trim()) img=`<a href="${esc(tagUrl(c.href.trim(),ctx))}" target="_blank" style="text-decoration:none;">${img}</a>`;
-    return `<div style="max-width:590px;margin:0 0 24px 0;">${img}</div>`;
+    return `<div style="max-width:${layout().inner}px;margin:0 0 24px 0;">${img}</div>`;
   }
   if(type==='list'){
     const items=String(c.items||'').split('\n').map(x=>x.replace(/^\s*[-•*]\s*/,'').trim()).filter(Boolean);
@@ -935,10 +951,10 @@ function renderBlockHTML(type,c,ctx){
     if(!t&&!x&&!src)return '';
     const img=!src?'':ctx.preview
       ?`<div style="background:#e8e8e3;border:1px dashed #b9b9b2;color:#666;${F}font-size:12px;padding:44px 8px;text-align:center;">🖼 ${esc(c.alt||'Image')}</div>`
-      :`<img src="${esc(src)}" width="270" alt="${esc(c.alt||'')}" style="display:block;width:100%;max-width:270px;height:auto;border:0;margin:0;" />`;
+      :`<img src="${esc(src)}" width="${Math.round(layout().inner/2)-20}" alt="${esc(c.alt||'')}" style="display:block;width:100%;max-width:${Math.round(layout().inner/2)-20}px;height:auto;border:0;margin:0;" />`;
     const txt=(t?`<p style="margin:0 0 8px 0;color:#000000;${F}font-size:20px;line-height:1.3;font-weight:600;">${inline(t,ctx)}</p>`:'')+
       x.split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean).map(p=>`<p style="margin:0 0 10px 0;color:#000000;${F}font-size:17px;line-height:1.45;">${inline(p,ctx)}</p>`).join('');
-    const imgTd=`<td class="stack-col" width="280" valign="top" style="width:280px;vertical-align:top;padding:0 ${c.side==='right'?'0 0 10px':'10px 0 0'};">${img}</td>`;
+    const imgTd=`<td class="stack-col" width="${Math.round(layout().inner/2)-10}" valign="top" style="width:${Math.round(layout().inner/2)-10}px;vertical-align:top;padding:0 ${c.side==='right'?'0 0 10px':'10px 0 0'};">${img}</td>`;
     const txtTd=`<td class="stack-col" valign="top" style="vertical-align:top;padding:0 ${c.side==='right'?'10px 0 0':'0 0 10px'};">${txt}</td>`;
     if(!src) return `<div style="margin:0 0 24px 0;">${txt}</div>`;
     return `<table class="stack" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 24px 0;"><tr>${c.side==='right'?txtTd+imgTd:imgTd+txtTd}</tr></table>`;
@@ -1063,7 +1079,7 @@ function generate(){
     L.push(`{%- comment -%} ${EMBED_TAG}${b64encode(JSON.stringify(e))} {%- endcomment -%}`);
   }
   const inner=indent(L.join('\n').replace(/\n+$/,''));
-  return SHELL_TOP+inner+'\n\n'+SHELL_BOTTOM;
+  return shellTop()+inner+'\n\n'+SHELL_BOTTOM;
 }
 const SHELL_TOP=`<html>
 
@@ -1288,6 +1304,7 @@ function renderRail(){
 /* ---------- canvas ---------- */
 function renderCanvas(){
   const cv=$('#canvas'); if(!cv) return;
+  document.documentElement.style.setProperty('--email-w',(layout().W+40)+'px');
   const {ckey,dkey,fv}=viewerKeys(); const utm=utmCfg();
   cv.innerHTML='';
   if(!state.blocks.length){cv.appendChild(h('div',{class:'empty-drop'},h('b',null,'Drag blocks here'),'or choose a structure from the ⋯ menu → New email'));return;}
@@ -1767,6 +1784,7 @@ $('#btnSettings').addEventListener('click',()=>{
   $('#setLinks').value=state.settings.links||'';$('#setSnips').value=state.settings.snippets||'';
   $('#setUtmSource').value=state.settings.utmSource||'';$('#setUtmMedium').value=state.settings.utmMedium||'';$('#setUtmDomains').value=state.settings.utmDomains||'';
   $('#setPgIntl').checked=!!state.settings.pgIntl;
+  $('#setEmailWidth').value=layout().W;$('#setEmailPadding').value=layout().P;
   teamListsStatus();
   renderKwTable($('#setCourses').value);
   openModal('#settingsModal');
@@ -1776,7 +1794,7 @@ $('#setReset').addEventListener('click',()=>{$('#setCourses').value=state.level=
 $('#setSave').addEventListener('click',()=>{
   if(state.level==='ug')state.settings.ugCourses=$('#setCourses').value;else state.settings.pgCourses=$('#setCourses').value;
   state.settings.domicile=$('#setDom').value;
-  Object.assign(state.settings,{links:$('#setLinks').value,snippets:$('#setSnips').value,utmSource:$('#setUtmSource').value.trim()||'gecko',utmMedium:$('#setUtmMedium').value.trim()||'email',utmDomains:$('#setUtmDomains').value.trim(),pgIntl:$('#setPgIntl').checked});
+  Object.assign(state.settings,{links:$('#setLinks').value,snippets:$('#setSnips').value,utmSource:$('#setUtmSource').value.trim()||'gecko',utmMedium:$('#setUtmMedium').value.trim()||'email',utmDomains:$('#setUtmDomains').value.trim(),pgIntl:$('#setPgIntl').checked,emailWidth:parseInt($('#setEmailWidth').value,10)||700,emailPadding:parseInt($('#setEmailPadding').value,10)||0});
   if(DB) saveTeamSettings(); else if(TEAM_LISTS) store('leb.localLists',1);
   fillTestSelectors();closeModal($('#settingsModal'));renderBuilder();toast(DB?'Lists saved for the team':TEAM_LISTS?'Saved in this browser. Download the lists file to update everyone':'Lists saved');
 });
@@ -2435,8 +2453,12 @@ async function selfTest(){
       const html=renderBlockHTML('text',{text:'Studying Psychology (https://www.abertay.ac.uk/course-search/undergraduate/psychology/) at Abertay University is a great choice.'},{liquid:true});
       add('Matrix links','Typed text with a web address in brackets is linked in the email',/<a href="https:\/\/www\.abertay\.ac\.uk\/course-search\/undergraduate\/psychology\/"[^>]*>Psychology<\/a> at Abertay/.test(html)&&!html.includes('(https'),esc(html));
       const btn=renderBlockHTML('button',{prompt:'',label:'Find out more',url:'https://www.abertay.ac.uk/'},{liquid:true});
-      add('Email layout','Button padding is on the table cell, so it can’t collapse',/<td[^>]*padding:14px 24px/.test(btn)&&!/<a[^>]*padding/.test(btn));
-      add('Email layout','Email width is 600px without depending on a mobile rule',/width:600px;max-width:100%/.test(SHELL_TOP)&&!/\.row-content\s*\{/.test(SHELL_TOP));
+      add('Email layout','Button height comes from the cell and line height, so it can’t collapse',/<td[^>]*height="50"/.test(btn));
+      const lay=layout(),top=shellTop();
+      add('Email layout',`Email width is ${lay.W}px (the Gecko header width) without depending on a mobile rule`,top.includes(`width="${lay.W}"`)&&top.includes(`width:${lay.W}px;max-width:100%`)&&!/\.row-content\s*\{/.test(top));
+      add('Email layout','The whole button is clickable (the link fills the button)',/<a [^>]*display:block;[^>]*line-height:50px/.test(btn)&&!/<a[^>]*padding:\d+px \d+px/.test(btn));
+      const em=renderBlockHTML('text',{text:'Find out more by clicking the link below 👇'},{liquid:true});
+      add('Email layout','Emoji use an emoji font, so Outlook on Windows shows them',/<span style="font-family:'Segoe UI Emoji'[^"]*">👇<\/span>/.test(em),esc(em));
     }
     {
       const want={'Programme / variant':'ignore','Header image src':'ignore','Other image srcs (all)':'ignore','Intro copy':'text','CTA prompt':'bprompt','Primary link URL':'burl','Hero image':'image','Hero/secondary image src':'image','Secondary link URL':'ignore','Next-step heading':'heading'};
@@ -2561,7 +2583,7 @@ $('#appVersion').textContent='v'+APP_VERSION;
 $('#setDownload').addEventListener('click',()=>{
   const st=clone(state.settings);
   if(state.level==='ug')st.ugCourses=$('#setCourses').value;else st.pgCourses=$('#setCourses').value;
-  Object.assign(st,{domicile:$('#setDom').value,links:$('#setLinks').value,snippets:$('#setSnips').value,utmSource:$('#setUtmSource').value.trim()||'gecko',utmMedium:$('#setUtmMedium').value.trim()||'email',utmDomains:$('#setUtmDomains').value.trim(),pgIntl:$('#setPgIntl').checked});
+  Object.assign(st,{domicile:$('#setDom').value,links:$('#setLinks').value,snippets:$('#setSnips').value,utmSource:$('#setUtmSource').value.trim()||'gecko',utmMedium:$('#setUtmMedium').value.trim()||'email',utmDomains:$('#setUtmDomains').value.trim(),pgIntl:$('#setPgIntl').checked,emailWidth:parseInt($('#setEmailWidth').value,10)||700,emailPadding:parseInt($('#setEmailPadding').value,10)||0});
   download('team-lists.json',JSON.stringify({updated:new Date().toISOString().slice(0,10),settings:st},null,2)+'\n');
 });
 initCapabilities().then(loadTeamListsFile);

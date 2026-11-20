@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0 · 2026-11-20
+
+From the second test send:
+- Email width now matches the 700px Gecko header (was 600px). Width and side margin are team settings (`emailWidth`, `emailPadding` in `team-lists.json`, or Team lists & settings → Email layout). Images resize to match.
+- The whole button is clickable, not just its text. The link fills the button and gets its height from line height rather than padding, so it can't collapse.
+- Emoji show in Outlook on Windows (they appeared as a box): they're now wrapped in an emoji font.
+- Self-test checks for all three.
+
 ## 1.3.1 · 2026-11-20
 
 Smarter choice of linked words (found with the test content matrix):
