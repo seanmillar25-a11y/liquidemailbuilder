@@ -32,8 +32,9 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
-body{font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg);font-size:14.5px;line-height:1.45;overflow:hidden}
+body{font-family:'Source Sans 3',system-ui,'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;color:var(--ink);background:var(--bg);font-size:14.5px;line-height:1.45;overflow:hidden}
 button,input,select,textarea{font:inherit;color:inherit}
+input,textarea,select{font-family:'Source Sans 3',system-ui,'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif}
 button{cursor:pointer}
 code{font-family:'JetBrains Mono',monospace;font-size:12px;background:#f1f2f4;padding:0 4px;border-radius:4px}
 svg{display:block}
@@ -99,7 +100,7 @@ svg{display:block}
 .cv .tag{position:absolute;left:-2px;top:-11px;display:none;gap:4px;align-items:center;background:var(--accent-d);color:#fff;font-size:11px;font-weight:600;border-radius:6px;padding:1px 7px;white-space:nowrap;z-index:2}
 .cv.varies .tag{background:#fff;color:var(--accent-ink);border:1px solid #9be7ec}
 .cv.varies::before{content:"";position:absolute;left:-1px;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--accent)}
-#canvas [style*="Source Sans Pro"]{font-family:'Source Sans 3','Source Sans Pro',Arial,sans-serif !important}
+#canvas [style*="Source Sans Pro"]{font-family:'Source Sans 3','Source Sans Pro',Arial,'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif !important}
 .cv.sel .tag,.cv:hover .tag{display:inline-flex}
 .cv.sel .tag{background:var(--accent-d);color:#fff;border-color:var(--accent-d)}
 .cv .tools{position:absolute;right:-2px;top:-14px;display:none;gap:2px;background:#fff;border:1px solid var(--line2);border-radius:8px;padding:2px;box-shadow:var(--shadow);z-index:3}
@@ -513,7 +514,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.4.0';
+const APP_VERSION='1.4.1';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1 · 2026-11-20
+
+- Emoji show properly in the builder's text boxes and canvas on Windows (they appeared as a box with a cross). The self-hosted Source Sans files now declare the Latin characters they cover, and emoji fonts are named in the builder's font stacks.
+
 ## 1.4.0 · 2026-11-20
 
 From the second test send:
