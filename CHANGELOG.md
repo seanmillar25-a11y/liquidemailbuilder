@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 · 2026-11-20
+
+- Shows a "newer version available" bar when the live site has been updated, so nobody builds or copies emails with an old cached copy.
+- Every generated template now starts with `Made with Liquid Email Builder vX.Y.Z` (a Liquid comment, invisible to recipients), so you can tell which version produced a template in Gecko.
+
 ## 1.2.0 · 2026-11-20
 
 Fixes from the first test send (new Outlook, through Abertay's email security):

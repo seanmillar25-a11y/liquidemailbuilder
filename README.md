@@ -34,7 +34,7 @@ Gecko dropdown values can contain an invisible character in place of a space, wh
 ## Releasing a change
 
 1. Make the change in `index.html` (or `team-lists.json`).
-2. Bump `APP_VERSION` in `index.html` and add a line to [`CHANGELOG.md`](CHANGELOG.md).
+2. Bump `APP_VERSION` in `index.html` **and** the version in `version.json` (that's what tells open copies a new version is out), and add a line to [`CHANGELOG.md`](CHANGELOG.md).
 3. Push. The **Checks** workflow runs automatically and fails if the course rules, the Liquid output or the live-template comparisons break.
 4. Open the site, run **Menu → Run self-test**, and do a Gecko test send.
 

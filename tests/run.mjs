@@ -61,6 +61,8 @@ for (let attempt = 0; attempt < 3 && !added; attempt++) {
 check('Dragging a block into the email adds it', added);
 const code = await page.evaluate(() => window.__leb.generate());
 check('Generated code includes the Gecko email shell', code.includes('class="row-content"') && code.trim().endsWith('</html>'));
+const verOk = await page.evaluate(async () => (await (await fetch('version.json')).json()).version === window.__leb.version);
+check('version.json matches APP_VERSION (bump both when releasing)', verOk);
 check('Team lists file loaded', await page.evaluate(() => fetch('team-lists.json').then(r => r.ok)));
 check('No page errors or requests to other servers', errors.length === 0, errors.join('\n    '));
 

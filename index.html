@@ -505,7 +505,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.2.0';
+const APP_VERSION='1.2.1';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc
@@ -984,7 +984,7 @@ function fieldVar(ref){return (isResp(ref)?'r_':'f_')+String(ref).replace(/^resp
 function matchWords(m){return String(m||'').toLowerCase().split(/[\s,]+/).map(x=>x.replace(/[^a-z0-9]/g,'')).filter(Boolean);}
 function generate(){
   const utm=utmCfg();
-  const L=[];
+  const L=[`{%- comment -%} Made with Liquid Email Builder v${APP_VERSION} {%- endcomment -%}`];
   const needCourse=state.blocks.some(b=>b.mode==='course');
   const needDom=state.blocks.some(b=>b.mode==='domicile');
   const fieldsUsed=[...new Set(state.blocks.filter(b=>b.mode==='field').map(b=>ensureSplit(b,'field').field).filter(Boolean))];
@@ -2530,6 +2530,23 @@ $('#setDownload').addEventListener('click',()=>{
   download('team-lists.json',JSON.stringify({updated:new Date().toISOString().slice(0,10),settings:st},null,2)+'\n');
 });
 initCapabilities().then(loadTeamListsFile);
+/* Tell people when a newer version is live, so nobody builds emails with an old cached copy. */
+async function checkForUpdate(){
+  if(!/^https?:$/.test(location.protocol)||DB) return;
+  try{
+    const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return;
+    const {version}=await r.json();
+    if(!version||version===APP_VERSION) return;
+    let bar=$('#updateBar');
+    if(!bar){bar=h('div',{id:'updateBar',class:'report',style:'border-color:#f2cf94;background:var(--warn-bg)'});$('.stage-inner').prepend(bar);}
+    bar.innerHTML='';
+    bar.append(h('b',null,`A newer version (v${version}) is available.`),' You’re on v'+APP_VERSION+'. Reload before building or copying any emails. Your work is saved. ',
+      h('button',{class:'sbtn dark',type:'button',onclick:()=>{location.replace(location.pathname+'?v='+encodeURIComponent(version));}},'Reload now'));
+  }catch(e){}
+}
+setTimeout(checkForUpdate,1500);
+setInterval(checkForUpdate,10*60*1000);
+window.addEventListener('focus',()=>{if(!checkForUpdate._t||Date.now()-checkForUpdate._t>60000){checkForUpdate._t=Date.now();checkForUpdate();}});
 window.__leb={generate,importLiquid,get state(){return state;},select,addBlock,get viewer(){return viewer;},selfTest,version:APP_VERSION};
 })();
 </script>
