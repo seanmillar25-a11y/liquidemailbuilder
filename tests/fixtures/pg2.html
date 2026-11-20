@@ -1,0 +1,57 @@
+<html>
+  <head><meta content="text/html; charset=utf-8" /></head>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#ffffff;"><tr><td>
+  <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation"><tr><td>
+  <table class="row-content" align="center" width="600" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto;color:#000000;width:600px;"><tr>
+  <td style="padding:0 5px 30px 5px;vertical-align:top;">
+  <div style="font-family:'Source Sans Pro',Tahoma,Verdana,Segoe,sans-serif;color:#000000;text-align:left;font-size:18px;line-height:1.45;">
+  <div style="font-family:'Source Sans Pro',Arial,sans-serif;color:#000000;font-size:18px;line-height:1.45;text-align:left;">
+
+<h3 style="margin:0 0 14px 0;font-family:'Source Sans Pro',Arial,sans-serif;color:#000000;font-size:20px;line-height:1.3;font-weight:600;">
+  Hi {{ contact.full_name.first_name | default: 'there' }},
+</h3>
+{%- capture domicile -%}{{- contact.domicile | downcase | strip -}}{%- endcapture -%}
+{%- capture cta_prompt_1 -%}<strong style="font-weight:700;">Find out more about the funding available to you.</strong>{%- endcapture -%}
+{%- capture cta_prompt_2 -%}<strong style="font-weight:700;">Check out your student accommodation options.</strong>{%- endcapture -%}
+{%- capture cta_text_1 -%}Find out more{%- endcapture -%}
+{%- capture cta_text_2 -%}View accommodation{%- endcapture -%}
+{%- capture cta_url_2 -%}https://www.abertay.ac.uk/accommodation/student-rooms-halls/{%- endcapture -%}
+{%- capture proof_copy_2 -%}Dundee is one of the most affordable UK cities to live in, with monthly household costs working out at roughly 20% cheaper than the national average (Numbeo 2026), so your money will definitely go further here.{%- endcapture -%}
+{%- capture next_step_copy -%}Keep an eye out for our next email. We'll give you the low-down on what studying at Abertay is really like.{%- endcapture -%}
+{%- if domicile contains "scotland" -%}
+{%- capture intro_copy -%}Scottish intro: it's more than achievable with government funding and loans.{%- endcapture -%}
+{%- capture proof_copy_1 -%}All Scottish students must apply to the <a href="https://www.saas.gov.uk/" style="color:#000000;text-decoration:underline;">Student Award Agency Scotland (SAAS)</a> for postgraduate tuition fee funding.{%- endcapture -%}
+{%- capture cta_url_1 -%}https://www.abertay.ac.uk/study-apply/money-fees-and-funding/postgraduate-taught-funding/{%- endcapture -%}
+{%- capture contact_line -%}If we can answer any questions to help make your decision about what or where to study a little easier, please call us on +44(0)1382 308080 or email <a href="mailto:sro@abertay.ac.uk" style="color:#000000;text-decoration:underline;">sro@abertay.ac.uk</a>.{%- endcapture -%}
+{%- elsif domicile contains "england" or domicile contains "wales" or domicile contains "northern" or domicile contains "republic" -%}
+{%- capture intro_copy -%}rUK intro: it's more than achievable with loans and scholarships.{%- endcapture -%}
+{%- capture proof_copy_1 -%}In addition, we offer the <a href="https://www.abertay.ac.uk/study-apply/money-fees-and-funding/scholarships/rest-of-uk-postgraduate-abertay-scholarships/" style="color:#000000;text-decoration:underline;">Abertay Postgraduate Taught rUK Scholarship</a>. If eligible, you'll receive a £1,000 award.{%- endcapture -%}
+{%- capture cta_url_1 -%}https://www.abertay.ac.uk/study-apply/money-fees-and-funding/postgraduate-taught-funding/{%- endcapture -%}
+{%- capture contact_line -%}If we can answer any questions to help make your decision about what or where to study a little easier, please call us on +44(0)1382 308080 or email <a href="mailto:sro@abertay.ac.uk" style="color:#000000;text-decoration:underline;">sro@abertay.ac.uk</a>.{%- endcapture -%}
+{%- else -%}
+{%- capture intro_copy -%}International intro: it's more than achievable with scholarships.{%- endcapture -%}
+{%- capture proof_copy_1 -%}To assist you with costs, we offer a variety of <a href="https://www.abertay.ac.uk/study-apply/money-fees-and-funding/scholarships/?studyLevels=Postgraduate%20Taught" style="color:#000000;text-decoration:underline;">scholarships for international postgraduate students</a>.{%- endcapture -%}
+{%- capture cta_url_1 -%}https://www.abertay.ac.uk/study-apply/money-fees-and-funding/postgraduate-taught-funding/{%- endcapture -%}
+{%- capture contact_line -%}If we can answer any questions, please email <a href="mailto:international@abertay.ac.uk" style="color:#000000;text-decoration:underline;">international@abertay.ac.uk</a>.{%- endcapture -%}
+{%- endif -%}
+<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ intro_copy }}</p>
+<div style="max-width:590px;margin:0 0 24px 0;">
+  <img src="https://gecko-uploads.s3.amazonaws.com/gecko_1490/Students.png" style="display:block;width:100%;height:auto;border:0;margin:0;" width="590" alt="Abertay students" />
+</div>
+<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ proof_copy_1 }}</p>
+<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ cta_prompt_1 }}</p>
+{% if cta_url_1 != blank %}<p style="margin:0 0 24px 0;">
+  <a href="{{ cta_url_1 }}" style="background-color:#32DDE9;color:#000000;text-decoration:none;padding:14px 24px;border-radius:10px;display:block;width:100%;box-sizing:border-box;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.2;font-weight:700;text-align:center;">{{ cta_text_1 }}</a>
+</p>{% endif %}
+<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ proof_copy_2 }}</p>
+<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ cta_prompt_2 }}</p>
+{% if cta_url_2 != blank %}<p style="margin:0 0 24px 0;">
+  <a href="{{ cta_url_2 }}" style="background-color:#32DDE9;color:#000000;text-decoration:none;padding:14px 24px;border-radius:10px;display:block;width:100%;box-sizing:border-box;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.2;font-weight:700;text-align:center;">{{ cta_text_2 }}</a>
+</p>{% endif %}
+<h3 style="margin:0 0 14px 0;font-family:'Source Sans Pro',Arial,sans-serif;color:#000000;font-size:20px;line-height:1.3;font-weight:600;">{{ next_step_copy }}</h3>
+<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ contact_line }}</p>
+<p style="margin:0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">
+  All the best,<br />The Abertay Team
+</p>
+  </div></div></td></tr></table></td></tr></table></td></tr></table>
+</html>

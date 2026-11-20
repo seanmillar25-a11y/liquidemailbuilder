@@ -1,0 +1,77 @@
+<html>
+  <head><meta content="text/html; charset=utf-8" /></head>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#ffffff;"><tr><td>
+  <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation"><tr><td>
+  <table class="row-content" align="center" width="600" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto;color:#000000;width:600px;"><tr>
+  <td style="padding:0 5px 30px 5px;vertical-align:top;">
+  <div style="font-family:'Source Sans Pro',Tahoma,Verdana,Segoe,sans-serif;color:#000000;text-align:left;font-size:18px;line-height:1.45;">
+  <div style="font-family:'Source Sans Pro',Arial,sans-serif;color:#000000;font-size:18px;line-height:1.45;text-align:left;">
+
+<h3 style="margin:0 0 14px 0;font-family:'Source Sans Pro',Arial,sans-serif;color:#000000;font-size:20px;line-height:1.3;font-weight:600;">
+  Hi {{ contact.full_name.first_name | default: 'there' }},
+</h3>
+{%- capture raw_course -%}{{- contact.course_of_interest_pgt | strip -}}{%- endcapture -%}
+{%- capture course -%}{{- raw_course | downcase | replace: '&', 'and' | replace: '–', '-' | replace: '—', '-' -}}{%- endcapture -%}
+{%- capture intro_copy -%}Thanks for your interest in studying at Abertay.{%- endcapture -%}
+{%- capture proof_copy_1 -%}{%- endcapture -%}
+{%- capture proof_copy_2 -%}{%- endcapture -%}
+{%- capture cta_prompt -%}Find out more by clicking the link below 👇{%- endcapture -%}
+{%- capture cta_text -%}Find out more{%- endcapture -%}
+{%- capture next_step_copy -%}Look out for our next email where we'll dive into practicalities such as funding, accommodation and part-time work.{%- endcapture -%}
+{%- capture contact_line -%}If we can answer any questions to help make your decision about what or where to study a little easier, please call us on +44(0)1382 308080 or email <a href="mailto:sro@abertay.ac.uk" style="color:#000000;text-decoration:underline;">sro@abertay.ac.uk</a>.{%- endcapture -%}
+{%- capture cta_url -%}https://www.abertay.ac.uk/study-apply/how-to-apply/postgraduate-taught/{%- endcapture -%}
+{%- capture hero_image -%}{%- endcapture -%}
+{%- if course contains 'accounting' -%}
+{%- comment -%} Accounting {%- endcomment -%}
+{%- capture intro_copy -%}Taking on your master’s degree in <a href="https://www.abertay.ac.uk/course-search/postgraduate-taught/accounting-and-finance-cima-gateway/" style="color:#000000;text-decoration:underline;">Accounting and Finance</a> at Abertay University is a great choice.{%- endcapture -%}
+{%- capture proof_copy_1 -%}Ready to propel your career forward? CIMA exemptions.{%- endcapture -%}
+{%- capture proof_copy_2 -%}{%- endcapture -%}
+{%- capture cta_prompt -%}Ready to apply? Here's some useful information 👇{%- endcapture -%}
+{%- capture cta_text -%}Find out more{%- endcapture -%}
+{%- capture cta_url -%}https://www.abertay.ac.uk/study-apply/how-to-apply/postgraduate-taught/{%- endcapture -%}
+{%- capture hero_image -%}https://gecko-uploads.s3.amazonaws.com/Business.png{%- endcapture -%}
+{%- elsif course contains 'biomedical' and course contains 'industrial' -%}
+{%- comment -%} Biomed IP {%- endcomment -%}
+{%- capture intro_copy -%}Biomedical with Industrial Practise intro.{%- endcapture -%}
+{%- capture proof_copy_1 -%}Industrial placement copy.{%- endcapture -%}
+{%- capture proof_copy_2 -%}{%- endcapture -%}
+{%- capture cta_prompt -%}Ready to apply? Here's some useful information 👇{%- endcapture -%}
+{%- capture cta_text -%}Find out more{%- endcapture -%}
+{%- capture cta_url -%}https://www.abertay.ac.uk/study-apply/how-to-apply/postgraduate-taught/{%- endcapture -%}
+{%- capture hero_image -%}https://gecko-uploads.s3.amazonaws.com/Biomed.png{%- endcapture -%}
+{%- elsif course contains 'law' -%}
+{%- comment -%} Cyber law {%- endcomment -%}
+{%- capture intro_copy -%}Cyber Law and Ethics intro.{%- endcapture -%}
+{%- capture proof_copy_1 -%}Ethics is built into everything.<br /><br />Second para.{%- endcapture -%}
+{%- capture proof_copy_2 -%}{%- endcapture -%}
+{%- capture cta_prompt -%}Ready to apply? Here's some useful information 👇{%- endcapture -%}
+{%- capture cta_text -%}Find out more{%- endcapture -%}
+{%- capture cta_url -%}https://www.abertay.ac.uk/study-apply/how-to-apply/postgraduate-taught/{%- endcapture -%}
+{%- capture hero_image -%}https://www.abertay.ac.uk/media/cyber.jpg{%- endcapture -%}
+{%- elsif course contains 'biomedical' -%}
+{%- comment -%} Biomed {%- endcomment -%}
+{%- capture intro_copy -%}Biomedical Science intro.{%- endcapture -%}
+{%- capture proof_copy_1 -%}Near-patient testing copy.{%- endcapture -%}
+{%- capture proof_copy_2 -%}{%- endcapture -%}
+{%- capture cta_prompt -%}Ready to apply? Here's some useful information 👇{%- endcapture -%}
+{%- capture cta_text -%}Find out more{%- endcapture -%}
+{%- capture cta_url -%}https://www.abertay.ac.uk/study-apply/how-to-apply/postgraduate-taught/{%- endcapture -%}
+{%- capture hero_image -%}https://www.abertay.ac.uk/media/biomed3.jpg{%- endcapture -%}
+{%- endif -%}
+<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ intro_copy }}</p>
+{% if hero_image != blank %}<div style="max-width:590px;margin:0 0 24px 0;">
+  <img src="{{ hero_image }}" style="display:block;width:100%;height:auto;border:0;margin:0;" width="590" alt="" />
+</div>{% endif %}
+{% if proof_copy_1 != blank %}<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ proof_copy_1 }}</p>{% endif %}
+{% if proof_copy_2 != blank %}<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ proof_copy_2 }}</p>{% endif %}
+{% if cta_prompt != blank %}<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;"><strong style="font-weight:700;">{{ cta_prompt }}</strong></p>{% endif %}
+{% if cta_url != blank %}<p style="margin:0 0 24px 0;">
+  <a href="{{ cta_url }}" style="background-color:#32DDE9;color:#000000;text-decoration:none;padding:14px 24px;border-radius:10px;display:block;width:100%;box-sizing:border-box;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.2;font-weight:700;text-align:center;">{{ cta_text }}</a>
+</p>{% endif %}
+{% if next_step_copy != blank %}<h3 style="margin:0 0 14px 0;font-family:'Source Sans Pro',Arial,sans-serif;color:#000000;font-size:20px;line-height:1.3;font-weight:600;">{{ next_step_copy }}</h3>{% endif %}
+<p style="margin:0 0 18px 0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">{{ contact_line }}</p>
+<p style="margin:0;color:#000000;font-family:'Source Sans Pro',Arial,sans-serif;font-size:18px;line-height:1.45;">
+  All the best,<br />The Abertay Team
+</p>
+  </div></div></td></tr></table></td></tr></table></td></tr></table>
+</html>
