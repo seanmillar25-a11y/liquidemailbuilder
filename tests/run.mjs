@@ -59,6 +59,25 @@ for (let attempt = 0; attempt < 3 && !added; attempt++) {
   added = (await page.locator('.cv').count()) > before;
 }
 check('Dragging a block into the email adds it', added);
+// Text editor undo / redo
+await page.locator('.tile:has-text("Text")').first().click();
+await page.waitForTimeout(300);
+const ta = page.locator('#insp textarea').first();
+await ta.click(); await page.keyboard.type('Hello world');
+await page.keyboard.down('Shift'); for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowLeft'); await page.keyboard.up('Shift');
+await page.locator('#insp .toolbar button[title="Bold"]').click();
+const afterBold = await ta.inputValue();
+await page.locator('#insp .toolbar button[aria-label="Undo"]').click();
+const afterUndo = await ta.inputValue();
+await page.locator('#insp .toolbar button[aria-label="Redo"]').click();
+const afterRedo = await ta.inputValue();
+await page.waitForTimeout(400);
+const canvasBold = await page.locator('.cv.sel strong').count();
+check('Text editor: Bold, then Undo and Redo, work', afterBold === 'Hello **world**' && afterUndo === 'Hello world' && afterRedo === 'Hello **world**', JSON.stringify({ afterBold, afterUndo, afterRedo }));
+check('Text editor: email preview follows Undo/Redo', canvasBold === 1);
+await page.keyboard.press('Control+Z');
+check('Text editor: Ctrl+Z undoes a toolbar change', (await ta.inputValue()) === 'Hello world');
+
 const code = await page.evaluate(() => window.__leb.generate());
 check('Generated code includes the Gecko email shell', code.includes('class="row-content"') && code.trim().endsWith('</html>'));
 const verOk = await page.evaluate(async () => (await (await fetch('version.json')).json()).version === window.__leb.version);

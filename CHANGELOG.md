@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0 · 2026-11-23
+
+- Undo and Redo buttons in the text editor toolbar.
+- Bold, Link, First name, Insert field, Saved link, Snippet and the automatic link conversion on paste can now all be undone (with the buttons or Ctrl+Z). Previously they cleared the undo history.
+
 ## 1.4.1 · 2026-11-20
 
 - Emoji show properly in the builder's text boxes and canvas on Windows (they appeared as a box with a cross). The self-hosted Source Sans files now declare the Latin characters they cover, and emoji fonts are named in the builder's font stacks.

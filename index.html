@@ -154,6 +154,8 @@ svg{display:block}
 .toolbar{display:flex;gap:4px;margin-bottom:5px;align-items:center;flex-wrap:wrap}
 .toolbar button{border:1px solid var(--line2);background:#fff;border-radius:7px;padding:1px 8px;font-size:12px;height:25px}
 .toolbar button:hover{border-color:var(--accent-d)}
+.toolbar .tb-undo{width:27px;padding:0;display:inline-grid;place-items:center;color:var(--ink2)}
+.toolbar .tb-sep{width:1px;height:18px;background:var(--line2);margin:0 3px}
 .toolbar .hint{display:none}
 .field select.tb-sel,.tb-sel{border:1px solid var(--line2);background:#fff;border-radius:7px;padding:1px 4px;font-size:12px;max-width:118px;width:auto;height:25px}
 .sbtn{border:1px solid var(--line2);background:#fff;border-radius:8px;padding:4px 10px;font-size:12.5px;font-weight:600}
@@ -514,7 +516,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.4.1';
+const APP_VERSION='1.5.0';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc
@@ -1612,6 +1614,18 @@ function syncDatalist(){
   if(!dl){dl=h('datalist',{id:'savedLinksList'});document.body.appendChild(dl);}
   dl.innerHTML='';savedLinks().forEach(l=>dl.appendChild(h('option',{value:l.url},l.name)));
 }
+/* Change text in a box the way typing does, so Ctrl+Z / the Undo button can reverse it.
+   (Setting .value directly wipes the browser's undo history.) */
+function editText(input,text,start,end){
+  input.focus();input.setSelectionRange(start,end);
+  let ok=false;try{ok=document.execCommand('insertText',false,text);}catch(e){}
+  if(!ok){input.setRangeText(text,start,end,'end');input.dispatchEvent(new Event('input',{bubbles:true}));}
+}
+function undoText(input,redo){
+  input.focus();
+  let ok=false;try{ok=document.execCommand(redo?'redo':'undo');}catch(e){}
+  if(!ok) toast(redo?'Nothing to redo':'Use Ctrl+Z to undo in this browser');
+}
 function fieldEl(label,obj,key,opts){
   opts=opts||{};
   const id='f'+uid();
@@ -1621,11 +1635,14 @@ function fieldEl(label,obj,key,opts){
   if(opts.toolbar){
     const ins=(before,after,placeholder)=>{
       const s=input.selectionStart,e=input.selectionEnd,v=input.value;const sel=v.slice(s,e)||placeholder||'';
-      input.value=v.slice(0,s)+before+sel+after+v.slice(e);
-      obj[key]=input.value;input.focus();
+      editText(input,before+sel+after,s,e);
       if(before==='['&&after==='](https://)'&&sel){const p=s+before.length+sel.length+2;input.setSelectionRange(p,p+8);}else input.setSelectionRange(s+before.length,s+before.length+sel.length);
-      refresh();
     };
+    const keepFocus=b=>{b.addEventListener('mousedown',e=>e.preventDefault());return b;};
+    const undoBtn=keepFocus(h('button',{type:'button',class:'tb-undo',title:'Undo (Ctrl+Z)','aria-label':'Undo',onclick:()=>undoText(input,false)}));
+    undoBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
+    const redoBtn=keepFocus(h('button',{type:'button',class:'tb-undo',title:'Redo (Ctrl+Y)','aria-label':'Redo',onclick:()=>undoText(input,true)}));
+    redoBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>';
     const respBox=h('span',{style:'display:none;gap:4px;align-items:center'});
     const respNum=h('input',{type:'text',placeholder:'Response no.',style:'width:96px;padding:1px 6px;font-size:12px;border:1px solid var(--line2);border-radius:6px'});
     respBox.append(respNum,h('button',{type:'button',onclick:()=>{const n=cleanRespNum(respNum.value);if(!n){toast('Type the response field number');return;}ins(`{field:response.${n}}`,'','');respBox.style.display='none';respNum.value='';}},'Insert'));
@@ -1637,6 +1654,7 @@ function fieldEl(label,obj,key,opts){
     const linkSel=links.length?h('select',{class:'tb-sel',onchange:e=>{const i=e.target.value;e.target.value='';if(i==='')return;const l=links[+i];ins('[',`](${l.url})`,l.name);}},h('option',{value:''},'Saved link…'),links.map((l,i)=>h('option',{value:String(i)},l.name))):null;
     const snipSel=snips.length?h('select',{class:'tb-sel',onchange:e=>{const i=e.target.value;e.target.value='';if(i==='')return;ins(snips[+i].text,'','');}},h('option',{value:''},'Snippet…'),snips.map((x,i)=>h('option',{value:String(i)},x.name))):null;
     wrap.appendChild(h('div',{class:'toolbar'},
+      undoBtn,redoBtn,h('span',{class:'tb-sep'}),
       h('button',{type:'button',title:'Bold',onclick:()=>ins('**','**','bold text')},h('b',null,'B')),
       h('button',{type:'button',title:'Link',onclick:()=>ins('[','](https://)','link text')},'Link'),
       linkSel,
@@ -1651,10 +1669,7 @@ function fieldEl(label,obj,key,opts){
       if(!txt||!(/(?<!\])\(\s*(https?:\/\/|www\.)/i.test(txt)||/\{\?(url|b)\?\}|\*link to:/i.test(txt)))return;
       e.preventDefault();
       const conv=convertShorthand(txt,null);
-      const st=input.selectionStart,en=input.selectionEnd;
-      input.value=input.value.slice(0,st)+conv+input.value.slice(en);
-      input.setSelectionRange(st+conv.length,st+conv.length);
-      obj[key]=input.value;refresh();
+      editText(input,conv,input.selectionStart,input.selectionEnd);
       toast('Links converted. Check the linked words are right');
     });
   }
