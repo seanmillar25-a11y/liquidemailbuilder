@@ -18,6 +18,17 @@ It runs entirely in your browser. It doesn't use AI, doesn't connect to any othe
 
 To change an email that's already live, open the menu (⋯) → **Edit a live Liquid template** and paste its HTML. Emails made in this builder re-open exactly. Older templates are rebuilt into blocks.
 
+### Sequences (Email 1, Email 2, Email 3…)
+
+For a series of emails, press **Start a sequence** above the email. Each email gets a tab, so you can switch between them. On each tab:
+
+- a number means that email has issues in Checks
+- ✓ means it's been copied to Gecko and hasn't changed since
+- ● means it has changed since you last copied it
+- ○ means it hasn't been copied yet
+
+While a sequence is open, new, imported and opened emails are added as tabs instead of replacing the email on screen. **Import a content matrix → Import every tab as a sequence** builds a whole sequence from a matrix, one email per tab, and works out UG or PG for each tab. The sequence name menu has options to rename, download the sequence as a file, download all the Gecko code at once, and switch between sequences. Sequences are kept in your browser; download the sequence file to share or back one up.
+
 ### Saving and sharing emails
 
 - **Menu → Save / open** keeps emails in your browser.

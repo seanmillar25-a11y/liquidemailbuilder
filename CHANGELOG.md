@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0 · 2026-11-25
+
+- **Sequences.** Work on a series of emails (Email 1, Email 2, …) as tabs above the email. Each tab shows its number of Checks issues, or whether it has been copied to Gecko (✓), changed since copying (●) or not copied yet (○). Drag tabs or use the ⋯ menu to reorder, duplicate or remove.
+- While a sequence is open, new, imported and opened emails are added as tabs, so nothing on screen is replaced.
+- **Import every tab as a sequence** in the matrix import: one email per tab, with UG or PG worked out per tab from its course names.
+- Sequence menu: rename, download the sequence file, download all Gecko code, switch between sequences, close or delete.
+- Sequence files open through Save / open → Open from project code.
+
 ## 1.5.0 · 2026-11-23
 
 - Undo and Redo buttons in the text editor toolbar.

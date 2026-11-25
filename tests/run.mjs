@@ -78,6 +78,26 @@ check('Text editor: email preview follows Undo/Redo', canvasBold === 1);
 await page.keyboard.press('Control+Z');
 check('Text editor: Ctrl+Z undoes a toolbar change', (await ta.inputValue()) === 'Hello world');
 
+// Sequences
+await page.evaluate(() => document.querySelectorAll('.drawer').forEach(d => d.classList.remove('open')));
+await page.locator('button:has-text("Start a sequence")').click();
+await page.keyboard.press('Escape');
+const firstName = await page.inputValue('#emailName');
+await page.locator('.stab.add').click();
+await page.locator('#seqPop button:has-text("Blank email")').click();
+await page.waitForTimeout(300);
+await page.fill('#emailName', 'Second email');
+await page.waitForTimeout(300);
+await page.locator('.stab').nth(0).click();
+await page.waitForTimeout(300);
+check('Sequence: adding an email keeps the first one, and tabs switch between them', (await page.locator('.stab:not(.add)').count()) === 2 && (await page.inputValue('#emailName')) === firstName);
+await page.locator('#copyCode').click();
+await page.waitForTimeout(400);
+check('Sequence: Copy for Gecko marks the tab', ['✓', String(await page.evaluate(() => 0))].includes(await page.locator('.stab.on .st').innerText()) || /^\d+$/.test(await page.locator('.stab.on .st').innerText()));
+await page.locator('.stab').nth(1).click();
+await page.waitForTimeout(300);
+check('Sequence: second email kept its name', (await page.inputValue('#emailName')) === 'Second email');
+
 const code = await page.evaluate(() => window.__leb.generate());
 check('Generated code includes the Gecko email shell', code.includes('class="row-content"') && code.trim().endsWith('</html>'));
 const verOk = await page.evaluate(async () => (await (await fetch('version.json')).json()).version === window.__leb.version);

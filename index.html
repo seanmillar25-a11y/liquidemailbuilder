@@ -117,6 +117,32 @@ svg{display:block}
 .empty-drop b{display:block;color:var(--ink2);font-size:16px;margin-bottom:4px}
 .paper.over .empty-drop{border-color:var(--accent-d);background:var(--accent-bg)}
 
+
+/* ---------- sequence tabs ---------- */
+.seqbar{display:flex;align-items:center;gap:8px;margin:-8px 0 14px;min-height:40px}
+.seqbar.off{gap:10px;font-size:13px;color:var(--ink3);justify-content:flex-end}
+.seq-hint{margin-right:2px}
+.seq-name{display:flex;align-items:center;gap:6px;border:0;background:transparent;font-weight:700;font-size:14px;padding:6px 8px;border-radius:8px;max-width:200px;flex:none}
+.seq-name span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seq-name:hover{background:#e9eaed}
+.seq-name .car{color:var(--ink3);font-size:11px}
+.seq-tabs{display:flex;gap:6px;overflow-x:auto;flex:1;padding:3px 2px;scrollbar-width:thin}
+.stab{display:flex;align-items:center;gap:7px;border:1px solid var(--line2);background:#fff;border-radius:10px;padding:5px 9px;font-size:13px;font-weight:600;color:var(--ink2);white-space:nowrap;max-width:230px;flex:none}
+.stab:hover{border-color:var(--accent-d)}
+.stab.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink);color:var(--ink)}
+.stab.over{box-shadow:-3px 0 0 0 var(--accent-d)}
+.stab .num{width:19px;height:19px;border-radius:6px;background:#f1f2f4;display:grid;place-items:center;font-size:11px;flex:none}
+.stab.on .num{background:var(--ink);color:#fff}
+.stab .t{overflow:hidden;text-overflow:ellipsis}
+.stab .st{font-size:11px;min-width:17px;height:17px;border-radius:9px;display:grid;place-items:center;padding:0 4px;flex:none}
+.stab .st.warn{background:var(--warn-bg);color:var(--warn)}
+.stab .st.ok{background:var(--ok-bg);color:var(--ok)}
+.stab .st.changed{color:var(--accent-d);font-size:13px}
+.stab .st.new{color:var(--ink3)}
+.stab.add{border-style:dashed;color:var(--accent-ink)}
+.menu button.danger{color:var(--bad)}
+.menu button[disabled]{opacity:.4;cursor:default}
+
 /* ---------- inspector ---------- */
 .insp{background:#fff;border-left:1px solid var(--line);overflow:auto;display:flex;flex-direction:column}
 .insp-head{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;position:sticky;top:0;background:#fff;z-index:2}
@@ -289,6 +315,7 @@ table.kw th{color:var(--ink3);font-weight:600}
   <aside class="rail" id="rail"></aside>
   <main class="stage" id="stage">
     <div class="stage-inner">
+      <div id="seqbar" class="seqbar off"></div>
       <div id="importReport" class="report" hidden></div>
       <div class="paper" id="paper">
         <div class="paper-banner">Gecko header banner</div>
@@ -431,7 +458,7 @@ table.kw th{color:var(--ink3);font-weight:600}
   <div class="modal" style="max-width:480px">
     <div class="modal-head"><h2>Start a new email</h2><button class="icon-btn" data-close>✕</button></div>
     <div class="modal-body">
-      <p style="margin-top:0">This replaces the email on screen. Save it first under <b>Save / open</b> if you want to keep it.</p>
+      <p style="margin-top:0">In a sequence, this adds a new email after the current one. Otherwise it replaces the email on screen, so save it first under <b>Save / open</b> if you want to keep it.</p>
       <div class="new-grid" style="margin-bottom:6px">
         <button class="new-opt" id="openImport" style="border-color:var(--accent-d);background:var(--accent-bg)"><b>Edit an existing Liquid template</b><span>Paste the HTML of a live Gecko email and the builder fills in the blocks and variations for you</span></button>
         <button class="new-opt" id="openMatrix"><b>Import from a content matrix (.xlsx)</b><span>Build an email from one sheet of a UG or PG content matrix</span></button>
@@ -477,7 +504,7 @@ table.kw th{color:var(--ink3);font-weight:600}
         </div>
       </div>
     </div>
-    <div class="modal-foot"><span class="left">This replaces the email on screen.</span><button class="btn dark" id="mxGo">Import</button></div>
+    <div class="modal-foot"><span class="left seq-note">In a sequence this adds a new email. Otherwise it replaces the email on screen.</span><button class="btn" id="mxAll" title="One email per tab, as a new sequence">Import every tab as a sequence</button><button class="btn dark" id="mxGo">Import this tab</button></div>
   </div>
 </div>
 
@@ -495,7 +522,7 @@ table.kw th{color:var(--ink3);font-weight:600}
       </div>
     </div>
     <div class="modal-foot">
-      <span class="left">This replaces the email on screen.</span>
+      <span class="left">In a sequence this adds a new email. Otherwise it replaces the email on screen.</span>
       <button class="btn dark" id="importGo">Import</button>
     </div>
   </div>
@@ -516,7 +543,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.5.0';
+const APP_VERSION='1.6.0';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc
@@ -1515,7 +1542,7 @@ function closeFloaters(except){
 }
 
 /* ---------------- Checks ---------------- */
-function runChecks(){
+function collectChecks(){
   const C=comp(),G=domGroups();
   const out=[];let n=0;
   let cur=null;
@@ -1579,6 +1606,10 @@ function runChecks(){
   if(JSON.stringify(state.blocks).includes('{field:response.')) add('info','This email uses <b>response fields</b>, so send it from a form response in Gecko. Contacts emailed directly will see those fields blank.');
   if(!n) add('ok','<b>No problems found.</b> Copy the code into Gecko and do a test send to check it as a few different contacts.');
   add('info','Reminder: the course rules use single words that no other course shares, which gets round the hidden-character problem in Gecko dropdown values. If your real Gecko course values differ from the list, update them under <b>Team lists &amp; settings</b>.');
+  return {out,n};
+}
+function runChecks(){
+  const {out,n}=collectChecks();
   $('#checks').innerHTML=out.join('');
   const cc=$('#checkCount'); cc.textContent=n; cc.classList.toggle('zero',!n);
 }
@@ -1598,6 +1629,7 @@ function refresh(now){
   clearTimeout(rt);
   const run=()=>{
     store('leb.current',state);
+    if(typeof SEQ!=='undefined'&&SEQ){seqSync();renderSeqBar();}
     const code=generate();
     $('#code').innerHTML=highlight(code);
     $('#codeMeta').textContent=`${code.split('\n').length} lines · branches on ${FIELDS[state.level]}`;
@@ -1849,7 +1881,7 @@ async function renderTeam(){
     const nameEl=h('span',{class:'n'});nameEl.textContent=d.name+(d.id===state.teamId?'  (open now)':'');
     el.appendChild(h('div',{class:'lib-item'},nameEl,
       h('span',{class:'d'},(d.level||'').toUpperCase()+' · '+(d.updatedAt?new Date(d.updatedAt).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'}):'')+(who?' · '+who:'')),
-      h('button',{class:'small-btn primary',onclick:()=>{const em=clone(d.email||{});if(!Array.isArray(em.blocks)){toast("Couldn't open that email");return;}em.settings=clone(state.settings);em.teamId=d.id;state=em;viewer.course='';fillTestSelectors();renderBuilder();closeModal($('#libModal'));toast('Opened “'+d.name+'”');}},'Open'),
+      h('button',{class:'small-btn primary',onclick:()=>{const em=clone(d.email||{});if(!Array.isArray(em.blocks)){toast("Couldn't open that email");return;}adoptEmail(em);state.teamId=d.id;viewer.course='';fillTestSelectors();renderBuilder();closeModal($('#libModal'));toast('Opened “'+d.name+'”');}},'Open'),
       teamCan?confirmBtn('Delete for everyone',async()=>{try{await DB.collection('emails').doc(d.id).delete();if(state.teamId===d.id)delete state.teamId;}catch(e){toast("Couldn't delete");}},'danger'):null));
   });
 }
@@ -1894,7 +1926,7 @@ function renderLib(){
     const it=lib[k];
     el.appendChild(h('div',{class:'lib-item'},
       h('span',{class:'n'},k),h('span',{class:'d'},(it.data.level||'').toUpperCase()+' · '+new Date(it.saved).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'})),
-      h('button',{class:'small-btn primary',onclick:()=>{state=clone(it.data);state.settings=withDefaults(state.settings);fillTestSelectors();renderBuilder();closeModal($('#libModal'));toast('Opened “'+k+'”');}},'Open'),
+      h('button',{class:'small-btn primary',onclick:()=>{adoptEmail(clone(it.data));fillTestSelectors();renderBuilder();closeModal($('#libModal'));toast('Opened “'+k+'”');}},'Open'),
       confirmBtn('Delete',()=>{const l=libGet();delete l[k];store('leb.library',l);renderLib();},'danger')
     ));
   });
@@ -1905,10 +1937,12 @@ $('#libCopy').addEventListener('click',()=>copyText(JSON.stringify({leb:1,email:
 $('#libFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#libPaste').value=r.result;};r.readAsText(f);});
 $('#libLoad').addEventListener('click',()=>{
   try{
-    const j=JSON.parse($('#libPaste').value.trim());const em=j.email||j;
+    const j=JSON.parse($('#libPaste').value.trim());
+    if(j.sequence&&Array.isArray(j.sequence.emails)){const sq=j.sequence;sq.id=uid();sq.active=Math.min(sq.active||0,sq.emails.length-1);SEQS.push(sq);seqSync();SEQ=sq;state=loadEntry(SEQ.active);seqPersist();fillTestSelectors();renderAll();renderSeqBar();closeModal($('#libModal'));toast('Sequence opened');return;}
+    const em=j.email||j;
     if(!em||!Array.isArray(em.blocks))throw new Error('x');
     em.settings=withDefaults(em.settings);if(!em.level)em.level='pg';
-    state=em;fillTestSelectors();renderBuilder();closeModal($('#libModal'));toast('Email opened');
+    adoptEmail(em);fillTestSelectors();renderBuilder();closeModal($('#libModal'));toast('Email opened');
   }catch(e){toast("That doesn't look like a project code");}
 });
 
@@ -2179,7 +2213,7 @@ $('#importGo').addEventListener('click',()=>{
   let res;
   try{res=importLiquid(src);}catch(e){console.error(e);state.level=prevLevel;toast("Sorry, that template couldn't be read");return;}
   if(lv!=='auto'&&!res.exact) res.email.level=lv;
-  state=res.email; state.settings=withDefaults(state.settings);
+  adoptEmail(res.email);
   viewer.course='';fillTestSelectors();renderBuilder();closeModal($('#importModal'));
   showReport(res.report,res.exact?'Email re-opened':'Template imported');
   openDrawer('checks');
@@ -2301,7 +2335,7 @@ function mxMap(){
   const unmatched=isDom?vals.filter(v=>!domTargetsFor(v,G).length):vals.filter(v=>!classifyCourse(v,C));
   $('#mxSummary').innerHTML=`${vals.length} rows · branching by <b>${isDom?'domicile':'course'}</b>`+(unmatched.length?` · <span style="color:var(--warn)">${unmatched.length} row(s) don't match your ${isDom?'regions':lvl.toUpperCase()+' course list'}: ${unmatched.slice(0,6).map(esc).join(', ')}${unmatched.length>6?'…':''}</span>`:' · all rows matched');
 }
-function mxImport(){
+function mxImport(opts){
   const ai=+$('#mxAud').value; const lvl=$('#mxLevel').value;
   const C=computeCourses(lvl==='ug'?state.settings.ugCourses:state.settings.pgCourses);
   const G=parseDom(state.settings.domicile);
@@ -2357,7 +2391,8 @@ function mxImport(){
   if(imgs) report.push('Images were added where their column sits in the matrix. Drag them into place, and add alt text (the Checks tab lists what\'s missing).');
   report.unshift(`Imported ${rows.length} rows from “${esc($('#mxSheet').value)}” into ${blocks.length} blocks. Links and bold text from the matrix shorthand were converted, so check the linked words in each block.`);
   const email={name:$('#mxSheet').value,level:lvl,settings:clone(state.settings),blocks};
-  state=email; state.settings=withDefaults(state.settings);
+  if(opts&&opts.collect) return {email,report,rows:rows.length,unmatched};
+  adoptEmail(email);
   viewer.course='';fillTestSelectors();renderBuilder();closeModal($('#matrixModal'));
   showReport(report,'Matrix imported');
   openDrawer('checks');
@@ -2368,7 +2403,7 @@ $('#mxFile').addEventListener('change',async e=>{
   $('#mxStatus').textContent='Reading…';
   try{await loadXLSX();}catch(x){$('#mxStatus').textContent="Couldn't load the spreadsheet reader. Check your connection and try again.";return;}
   const buf=await f.arrayBuffer();
-  try{MX={wb:XLSX.read(buf,{type:'array'})};}catch(x){$('#mxStatus').textContent="That file couldn't be read as a spreadsheet.";return;}
+  try{MX={wb:XLSX.read(buf,{type:'array'}),fileName:f.name.replace(/\.(xlsx|xlsm|xls)$/i,'').replace(/[_]+/g,' ').trim()};}catch(x){$('#mxStatus').textContent="That file couldn't be read as a spreadsheet.";return;}
   const sh=$('#mxSheet');sh.innerHTML='';
   MX.wb.SheetNames.filter(n=>!/format|key|readme|instruction/i.test(n)).forEach(n=>sh.appendChild(h('option',{value:n},n)));
   $('#mxStatus').textContent='';$('#mxBody').hidden=false;$('#mxHeader').value='';mxRender();
@@ -2377,13 +2412,44 @@ $('#mxSheet').addEventListener('change',()=>{$('#mxHeader').value='';mxRender();
 $('#mxHeader').addEventListener('change',mxRender);
 $('#mxAud').addEventListener('change',mxMap);
 $('#mxLevel').addEventListener('change',()=>MX&&mxMap());
+async function mxImportAll(){
+  if(!MX||!MX.wb){toast('Choose a matrix file first');return;}
+  const sheets=[...$('#mxSheet').options].map(o=>o.value);
+  const emails=[],lines=[];const userLevel=$('#mxLevel').value;
+  for(const sh of sheets){
+    $('#mxSheet').value=sh;$('#mxHeader').value='';mxRender();
+    // UG or PG for this tab: whichever course list matches more of its rows
+    let lvlNote='';
+    if(MX.mode==='course'){
+      const ai=+$('#mxAud').value;const vals=MX.rows.slice(MX.hr).map(r=>String(r[ai]||'').replace(/\uFEFF/g,'').trim()).filter(Boolean);
+      const score=lv=>{const C=computeCourses(lv==='ug'?state.settings.ugCourses:state.settings.pgCourses);return vals.filter(v=>{const k=classifyCourse(v,C);return k&&norm(C.byKey[k].name).replace(/\s+(msc|mba|mprof|bsc|ba|llb)$/,'')===norm(v).replace(/\s+(msc|mba|mprof|bsc|ba|llb)$/,'');}).length+vals.filter(v=>classifyCourse(v,C)).length/1000;};
+      const hint=/\bpg|postgrad|msc|master/i.test(sh)?'pg':/\bug|undergrad/i.test(sh)?'ug':null;
+      const su=score('ug'),sp=score('pg');
+      const lv=su===sp?(hint||userLevel):(sp>su?'pg':'ug');
+      $('#mxLevel').value=lv;lvlNote=` · ${lv.toUpperCase()} courses`;
+    }
+    let r=null;try{r=mxImport({collect:true});}catch(e){console.error(e);}
+    $('#mxLevel').value=userLevel;
+    const extra=($('#mxGreet').checked?1:0)+($('#mxSignoff').checked?1:0);
+    if(!r||!r.rows||r.email.blocks.length<=extra){lines.push(`<b>${esc(sh)}</b>: no email content found, so it was skipped`);continue;}
+    emails.push(r.email);
+    lines.push(`<b>${emails.length}. ${esc(sh)}</b>: ${r.rows} rows${lvlNote}, ${r.email.blocks.length} blocks${r.unmatched.length?` · ${r.unmatched.length} row(s) didn't match: ${r.unmatched.map(esc).join(', ')}`:''}`);
+  }
+  if(!emails.length){toast('None of the tabs could be imported');return;}
+  if(SEQ)seqSync();
+  const sq={id:uid(),name:MX.fileName||'Imported sequence',emails:emails.map(emailEntry),active:0,updated:Date.now()};
+  SEQS.push(sq);SEQ=sq;state=loadEntry(0);sel={id:null,ver:null};viewer.course='';
+  seqPersist();fillTestSelectors();renderAll();renderSeqBar();closeModal($('#matrixModal'));
+  showReport([`Created the sequence “${esc(sq.name)}” with ${emails.length} email${emails.length>1?'s':''}, one per tab. The number on each tab shows how many issues it has in Checks.`,...lines,'Images were added where their column sits in each tab. Drag them into place and add alt text.'],'Matrix imported as a sequence');
+}
+$('#mxAll').addEventListener('click',()=>{try{mxImportAll();}catch(e){console.error(e);toast("Sorry, the tabs couldn't be imported");}});
 $('#mxGo').addEventListener('click',()=>{if(!MX||!MX.rows){toast('Choose a matrix file first');return;}try{mxImport();}catch(e){console.error(e);toast("Sorry, that sheet couldn't be imported");}});
 
 /* New */
 $('#btnNew').addEventListener('click',()=>openModal('#newModal'));
 document.querySelectorAll('[data-new]').forEach(b=>b.addEventListener('click',()=>{
   const t=b.dataset.new;
-  state=t==='blank'?blank():t.startsWith('s-')?structure(t):example(t==='example-ug'?'ug':'pg');
+  adoptEmail(t==='blank'?blank():t.startsWith('s-')?structure(t):example(t==='example-ug'?'ug':'pg'));
   viewer.course='';fillTestSelectors();renderBuilder();closeModal($('#newModal'));
 }));
 
@@ -2541,6 +2607,163 @@ async function runSelfTestUI(){
   });
 }
 
+/* ---------------- Sequences: several emails worked on together (Email 1, Email 2, …) ----------------
+   A sequence is a named list of emails kept in this browser. The email on screen is always `state`;
+   the sequence holds a copy of every email, and switching tabs swaps `state`. While a sequence is open,
+   importing or starting an email adds a tab instead of replacing the email on screen. */
+let SEQS=load('leb.seqs')||[];
+let SEQ=SEQS.find(s=>s.id===load('leb.seqCurrent'))||null;
+function seqPersist(){store('leb.seqs',SEQS);store('leb.seqCurrent',SEQ?SEQ.id:null);}
+function hashCode(str){let x=0;for(let i=0;i<str.length;i++)x=(x*31+str.charCodeAt(i))|0;return String(x);}
+function emailEntry(st){const e=clone(st);delete e.settings;delete e._copied;delete e.teamId;return e;}
+function loadEntry(i){const e=clone(SEQ.emails[i]);delete e._copied;e.settings=clone(state.settings);return e;}
+function withEmail(entry,fn){const keep=state;state=Object.assign(clone(entry),{settings:keep.settings});try{return fn();}finally{state=keep;}}
+/* what matters for "changed since copied": the Liquid itself, not comments, version stamp or embedded builder data */
+function codeHash(code){return hashCode(code.replace(/\{%-?\s*comment\s*-?%\}[\s\S]*?\{%-?\s*endcomment\s*-?%\}/g,''));}
+function seqSync(){
+  if(!SEQ)return;
+  const prev=SEQ.emails[SEQ.active]||{};
+  SEQ.emails[SEQ.active]=Object.assign(emailEntry(state),prev._copied?{_copied:prev._copied}:{});
+  SEQ.updated=Date.now();seqPersist();
+}
+function seqOpenEmail(i){
+  if(!SEQ)return;
+  if(i!==SEQ.active){seqSync();SEQ.active=i;}
+  state=loadEntry(i);sel={id:null,ver:null};viewer.course='';
+  seqPersist();fillTestSelectors();renderAll();renderSeqBar();
+}
+function seqStart(){
+  const s={id:uid(),name:'New sequence',emails:[emailEntry(state)],active:0,updated:Date.now()};
+  SEQS.push(s);SEQ=s;seqPersist();renderSeqBar();
+  setTimeout(()=>{const n=$('#seqName');if(n){n.focus();n.select();}},50);
+  toast('Sequence started. This email is Email 1');
+}
+/* Used wherever a new email arrives (new, structure, import, matrix, opening a saved email).
+   In a sequence it becomes a new tab after the current one, unless the current email is empty. */
+function adoptEmail(em){
+  em.settings=withDefaults(em.settings||clone(state.settings));
+  if(SEQ&&state.blocks.length){seqSync();SEQ.emails.splice(SEQ.active+1,0,emailEntry(em));SEQ.active++;}
+  state=em;sel={id:null,ver:null};
+  if(SEQ){seqSync();renderSeqBar();}
+}
+function seqStatus(entry,isActive){
+  const st=isActive?state:Object.assign(clone(entry),{settings:state.settings});
+  const keep=state;state=st;
+  try{
+    const n=collectChecks().n;
+    const h=codeHash(generate());
+    return {n,copied:!!entry._copied,fresh:entry._copied===h};
+  }finally{state=keep;}
+}
+function seqMarkCopied(){
+  if(!SEQ)return;
+  seqSync();SEQ.emails[SEQ.active]._copied=codeHash(generate());seqPersist();renderSeqBar();
+}
+let seqDrag=null;
+function renderSeqBar(){
+  const bar=$('#seqbar');if(!bar)return;
+  bar.innerHTML='';
+  if(!SEQ){
+    bar.className='seqbar off';
+    bar.append(h('span',{class:'seq-hint'},'Building a series of emails?'),
+      h('button',{class:'sbtn',type:'button',onclick:seqStart},'Start a sequence'));
+    if(SEQS.length) bar.append(h('button',{class:'sbtn',type:'button',onclick:e=>{e.stopPropagation();openSeqMenu(e.currentTarget,true);}},'Open a sequence ▾'));
+    return;
+  }
+  bar.className='seqbar';
+  const nameBtn=h('button',{class:'seq-name',type:'button',title:'Sequence options',onclick:e=>{e.stopPropagation();openSeqMenu(e.currentTarget);}},h('span',null,SEQ.name),h('span',{class:'car'},'▾'));
+  const tabs=h('div',{class:'seq-tabs'});
+  SEQ.emails.forEach((entry,i)=>{
+    const on=i===SEQ.active;
+    const s=seqStatus(entry,on);
+    let badge,tip;
+    if(s.n){badge=h('span',{class:'st warn'},String(s.n));tip=`${s.n} issue${s.n>1?'s':''} in Checks`;}
+    else if(s.fresh){badge=h('span',{class:'st ok'},'✓');tip='Copied to Gecko, no changes since';}
+    else if(s.copied){badge=h('span',{class:'st changed'},'●');tip='Changed since you last copied it to Gecko';}
+    else {badge=h('span',{class:'st new'},'○');tip='Not copied to Gecko yet';}
+    const t=h('button',{class:'stab'+(on?' on':''),type:'button',draggable:'true',title:`${(on?state:entry).name||'Untitled email'} · ${tip}`,onclick:()=>seqOpenEmail(i)},
+      h('span',{class:'num'},String(i+1)),h('span',{class:'t'},(on?state:entry).name||'Untitled email'),badge);
+    t.addEventListener('dragstart',e=>{seqDrag=i;try{e.dataTransfer.setData('text/plain','tab');e.dataTransfer.effectAllowed='move';}catch(x){}});
+    t.addEventListener('dragover',e=>{if(seqDrag==null)return;e.preventDefault();t.classList.add('over');});
+    t.addEventListener('dragleave',()=>t.classList.remove('over'));
+    t.addEventListener('drop',e=>{e.preventDefault();t.classList.remove('over');if(seqDrag==null||seqDrag===i)return;seqMove(seqDrag,i);seqDrag=null;});
+    t.addEventListener('dragend',()=>{seqDrag=null;});
+    tabs.appendChild(t);
+  });
+  const add=h('button',{class:'stab add',type:'button',title:'Add an email to this sequence',onclick:e=>{e.stopPropagation();openSeqAdd(e.currentTarget);}},'+ Email');
+  tabs.appendChild(add);
+  const more=h('button',{class:'icon',type:'button',title:'This email in the sequence',onclick:e=>{e.stopPropagation();openSeqEmailMenu(e.currentTarget);}});
+  more.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+  bar.append(nameBtn,tabs,more);
+  const on=bar.querySelector('.stab.on');if(on)on.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+function seqMove(from,to){
+  seqSync();
+  const [m]=SEQ.emails.splice(from,1);SEQ.emails.splice(to,0,m);
+  if(SEQ.active===from)SEQ.active=to;else if(from<SEQ.active&&to>=SEQ.active)SEQ.active--;else if(from>SEQ.active&&to<=SEQ.active)SEQ.active++;
+  seqPersist();renderSeqBar();
+}
+/* small floating menus */
+function popMenu(anchor,items){
+  closeFloaters();let m=$('#seqPop');if(m)m.remove();
+  m=h('div',{class:'menu open',id:'seqPop',style:'position:fixed'});
+  items.forEach(it=>{
+    if(it==='-'){m.appendChild(h('hr'));return;}
+    if(it.el){m.appendChild(it.el);return;}
+    m.appendChild(h('button',{type:'button',disabled:it.disabled,class:it.danger?'danger':'',onclick:e=>{e.stopPropagation();if(it.confirm&&!m._armed){m._armed=true;e.currentTarget.querySelector('span').firstChild.textContent=it.confirm;return;}m.remove();it.go();}},h('span',null,it.label,it.sub?h('small',null,it.sub):null)));
+  });
+  document.body.appendChild(m);
+  const r=anchor.getBoundingClientRect();m.style.top=(r.bottom+6)+'px';m.style.left=Math.max(8,Math.min(window.innerWidth-m.offsetWidth-8,r.left))+'px';
+  m.addEventListener('click',e=>e.stopPropagation());
+  setTimeout(()=>document.addEventListener('click',function close(){m.remove();document.removeEventListener('click',close);}),0);
+}
+function openSeqMenu(anchor,openOnly){
+  const items=[];
+  if(!openOnly&&SEQ){
+    const inp=h('input',{id:'seqName',value:SEQ.name,style:'width:100%;border:1px solid var(--line2);border-radius:8px;padding:6px 9px;margin:4px 0 6px;font-weight:600',
+      oninput:e=>{SEQ.name=e.target.value||'Untitled sequence';seqPersist();const n=document.querySelector('.seq-name span');if(n)n.textContent=SEQ.name;},onkeydown:e=>{if(e.key==='Enter')e.target.blur();}});
+    items.push({el:h('div',{style:'padding:4px 8px'},h('div',{class:'sec-t',style:'margin:2px 0 0'},'Sequence name'),inp)});
+    items.push('-');
+  }
+  SEQS.filter(s=>s!==SEQ).forEach(s=>items.push({label:'Open “'+s.name+'”',sub:`${s.emails.length} email${s.emails.length>1?'s':''} · ${new Date(s.updated||Date.now()).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}`,go:()=>{seqSync();SEQ=s;state=loadEntry(SEQ.active);sel={id:null,ver:null};viewer.course='';seqPersist();fillTestSelectors();renderAll();renderSeqBar();}}));
+  if(openOnly){popMenu(anchor,items);return;}
+  if(items.length>2)items.push('-');
+  items.push({label:'Download sequence file',sub:'Every email in one file, to share or keep',go:()=>{seqSync();download(slug(SEQ.name)+'.json',JSON.stringify({leb:1,sequence:SEQ},null,1));}});
+  items.push({label:'Download all Gecko code',sub:'One .html file per email, in a single text file',go:seqDownloadAll});
+  items.push({label:'Start another sequence',sub:'Starts with a copy of the email on screen',go:()=>{seqSync();SEQ=null;seqStart();}});
+  items.push({label:'Close sequence',sub:'Back to single emails. The sequence stays saved',go:()=>{seqSync();SEQ=null;seqPersist();renderSeqBar();}});
+  items.push({label:'Delete this sequence',danger:true,confirm:'Click again to delete it',sub:'Removes it from this browser',go:()=>{SEQS=SEQS.filter(s=>s!==SEQ);SEQ=null;seqPersist();renderSeqBar();toast('Sequence deleted. The email on screen is kept');}});
+  popMenu(anchor,items);
+}
+function openSeqAdd(anchor){
+  popMenu(anchor,[
+    {label:'Blank email',go:()=>{adoptEmailForce(blank());}},
+    {label:'From a structure or example…',go:()=>openModal('#newModal')},
+    {label:'Copy of this email',go:()=>{const c=clone(state);c.name=(state.name||'Email')+' copy';adoptEmailForce(c);}},
+    '-',
+    {label:'Import a matrix tab…',sub:'Adds one email from a content matrix',go:()=>{$('#mxLevel').value=state.level;openModal('#matrixModal');}},
+    {label:'Edit a live Liquid template…',sub:'Paste a Gecko template as a new email',go:()=>{$('#importSrc').value='';openModal('#importModal');}}
+  ]);
+}
+function adoptEmailForce(em){seqSync();SEQ.emails.splice(SEQ.active+1,0,emailEntry(Object.assign(em,{settings:undefined})));SEQ.active++;state=loadEntry(SEQ.active);sel={id:null,ver:null};viewer.course='';seqPersist();fillTestSelectors();renderAll();renderSeqBar();}
+function openSeqEmailMenu(anchor){
+  const i=SEQ.active,n=SEQ.emails.length;
+  popMenu(anchor,[
+    {label:'Move left',disabled:i===0,go:()=>seqMove(i,i-1)},
+    {label:'Move right',disabled:i===n-1,go:()=>seqMove(i,i+1)},
+    {label:'Duplicate',go:()=>{const c=clone(state);c.name=(state.name||'Email')+' copy';adoptEmailForce(c);}},
+    '-',
+    {label:'Remove from sequence',danger:true,disabled:n===1,confirm:'Click again to remove it',sub:n===1?'A sequence needs at least one email':'Deletes this email from the sequence',go:()=>{
+      const [gone]=SEQ.emails.splice(i,1);SEQ.active=Math.max(0,i-1);state=loadEntry(SEQ.active);sel={id:null,ver:null};seqPersist();fillTestSelectors();renderAll();renderSeqBar();
+      toast(`Removed “${gone.name||'Untitled email'}”`);}}
+  ]);
+}
+function seqDownloadAll(){
+  seqSync();
+  const parts=SEQ.emails.map((e,i)=>{const code=withEmail(e,()=>generate());return `<!-- ===== ${i+1}. ${String(e.name||'Untitled email').replace(/--/g,'-')} ===== -->\n${code}`;});
+  download(slug(SEQ.name)+'-gecko-code.txt',parts.join('\n\n'));
+}
+
 /* ---------------- Top-level wiring (new UI) ---------------- */
 $('#emailName').addEventListener('input',e=>{state.name=e.target.value;updUtmHint();refresh();});
 document.querySelectorAll('#levelSeg button').forEach(b=>b.addEventListener('click',()=>{
@@ -2551,8 +2774,8 @@ document.querySelectorAll('#levelSeg button').forEach(b=>b.addEventListener('cli
 $('#btnChecks').addEventListener('click',()=>openDrawer('checks'));
 $('#btnCode').addEventListener('click',()=>openDrawer('code'));
 document.querySelectorAll('[data-dclose]').forEach(b=>b.addEventListener('click',()=>b.closest('.drawer').classList.remove('open')));
-$('#copyCode').addEventListener('click',()=>copyText(generate(),'Copied. Paste it into your Gecko template'));
-$('#copyCode2').addEventListener('click',()=>copyText(generate(),'Copied. Paste it into your Gecko template'));
+$('#copyCode').addEventListener('click',()=>{copyText(generate(),'Copied. Paste it into your Gecko template');seqMarkCopied();});
+$('#copyCode2').addEventListener('click',()=>{copyText(generate(),'Copied. Paste it into your Gecko template');seqMarkCopied();});
 $('#btnMenu').addEventListener('click',e=>{e.stopPropagation();closeFloaters('menu');$('#menu').classList.toggle('open');});
 $('#viewerBtn').addEventListener('click',e=>{e.stopPropagation();closeFloaters('pop');renderViewerPop();$('#viewerPop').classList.toggle('open');});
 $('#viewerPop').addEventListener('click',e=>e.stopPropagation());
@@ -2591,9 +2814,11 @@ paper.addEventListener('drop',e=>{
 });
 $('#stage').addEventListener('click',e=>{if(e.target===$('#stage')||e.target.classList.contains('stage-inner'))select(null);});
 
+if(SEQ&&SEQ.emails[SEQ.active]){state=loadEntry(SEQ.active);}
 renderRail();
 fillTestSelectors();
 renderAll();
+renderSeqBar();
 refresh(true);
 $('#appVersion').textContent='v'+APP_VERSION;
 $('#setDownload').addEventListener('click',()=>{
