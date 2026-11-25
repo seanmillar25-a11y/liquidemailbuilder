@@ -98,6 +98,43 @@ await page.locator('.stab').nth(1).click();
 await page.waitForTimeout(300);
 check('Sequence: second email kept its name', (await page.inputValue('#emailName')) === 'Second email');
 
+// Preview text: always goes to the top, and only once
+await page.locator('.rail .tile:has-text("Preview text")').click();
+await page.waitForTimeout(300);
+await page.locator('.rail .tile:has-text("Preview text")').click();
+await page.waitForTimeout(300);
+const pv = await page.evaluate(() => window.__leb.state.blocks.map(b => b.type));
+check('Preview text is added at the top of the email, once', pv[0] === 'preview' && pv.filter(t => t === 'preview').length === 1, JSON.stringify(pv));
+await page.locator('#insp textarea').first().fill('A short inbox line');
+await page.waitForTimeout(400);
+check('Preview text shows as an inbox line on the canvas, and is hidden in the code', (await page.locator('#canvas .inbox-line').innerText()).includes('A short inbox line') && (await page.evaluate(() => window.__leb.generate())).includes('mso-hide:all;color:#ffffff;">A short inbox line</div>'));
+
+// Desktop / Phone preview
+await page.evaluate(() => { window.__leb.addBlock('twocol'); const b = window.__leb.state.blocks.at(-1); b.content.src = 'https://example.com/a.png'; b.content.alt = 'x'; b.content.text = 'Side text'; });
+await page.locator('#deviceSeg button[data-d="desktop"]').click();
+await page.waitForTimeout(300);
+const deskCol = await page.evaluate(() => getComputedStyle(document.querySelector('#canvas .stack-col')).display);
+await page.locator('#deviceSeg button[data-d="phone"]').click();
+await page.waitForTimeout(300);
+const phoneCol = await page.evaluate(() => getComputedStyle(document.querySelector('#canvas .stack-col')).display);
+const phoneW = await page.evaluate(() => document.querySelector('#paper').getBoundingClientRect().width);
+check('Phone view: narrow, and image + text rows stack', deskCol === 'table-cell' && phoneCol === 'block' && phoneW < 420, JSON.stringify({ deskCol, phoneCol, phoneW }));
+await page.locator('#deviceSeg button[data-d="desktop"]').click();
+await page.waitForTimeout(200);
+check('Desktop view: back to full width', (await page.evaluate(() => document.querySelector('#paper').getBoundingClientRect().width)) > 600);
+
+// Back up and restore
+await page.evaluate(() => localStorage.setItem('leb.library', JSON.stringify({ 'Backup test': { saved: 1, data: { name: 'Backup test', level: 'pg', blocks: [{ id: 'x1', type: 'text', label: 'T', mode: 'all', content: { text: 'Backed up' }, split: {} }] } } })));
+await page.locator('#btnMenu').click();
+const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('#menu button[data-m="backup"]').click()]);
+const backupPath = await dl.path();
+const backup = JSON.parse(await readFile(backupPath, 'utf8'));
+check('Back up: the file holds the saved emails and sequences', backup.lebBackup === 1 && backup.library['Backup test'] && Array.isArray(backup.sequences) && backup.sequences.length >= 1);
+await page.evaluate(() => localStorage.removeItem('leb.library'));
+await page.setInputFiles('#restoreFile', backupPath);
+await page.waitForTimeout(400);
+check('Restore: saved emails come back', await page.evaluate(() => !!JSON.parse(localStorage.getItem('leb.library') || '{}')['Backup test']));
+
 const code = await page.evaluate(() => window.__leb.generate());
 check('Generated code includes the Gecko email shell', code.includes('class="row-content"') && code.trim().endsWith('</html>'));
 const verOk = await page.evaluate(async () => (await (await fetch('version.json')).json()).version === window.__leb.version);

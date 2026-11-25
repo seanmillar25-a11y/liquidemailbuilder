@@ -10,7 +10,7 @@ The owner is Sean (marketing, not a developer). Explain changes in plain languag
 - **No requests to other servers.** Fonts, SheetJS (`vendor/xlsx.full.min.js`) and LiquidJS (`vendor/liquid.browser.min.js`) are stored in `vendor/`. A test fails if the page requests anything outside the site. Don't add CDN links, analytics or web fonts from elsewhere.
 - **No AI and no Claude at runtime.** Abertay IT want staff to use Copilot for AI, so the tool must not call any AI or Claude service. (It still contains optional code for Claude-hosted capabilities, `window.claude.use(...)`, which does nothing on GitHub Pages. Leave it alone unless asked.)
 - **The repository is public.** Never commit content matrices, real contact data or anything internal. Test fixtures must be clearly test or public copy.
-- **Saved work lives in each person's browser** (localStorage: `leb.current`, `leb.library`, `leb.seqs`, `leb.seqCurrent`). Keep old saved emails and project files opening in new versions; don't break their format.
+- **Saved work lives in each person's browser** (localStorage: `leb.current`, `leb.library`, `leb.seqs`, `leb.seqCurrent`; `leb.device` remembers Desktop/Phone). Menu → Back up all my work saves them all to one file (`lebBackup:1`), and restoring only ever adds. Keep old saved emails and project files opening in new versions; don't break their format.
 
 ## How index.html is organised
 
@@ -66,5 +66,5 @@ Don't change GitHub Pages or repository settings. Sean does that.
 
 ## Known open items
 
-- The UG course list is still the content-matrix list. Replace it with the real Gecko dropdown export in `team-lists.json` when Sean provides it.
-- Still to confirm in Gecko: response-field syntax, the builder-data comment surviving Gecko's editor, and image + text rows stacking on phones.
+- Still to confirm in Gecko: response-field syntax, the builder-data comment surviving Gecko's editor, image + text rows stacking on phones, and the hidden preview-text block showing as the inbox preview (Gecko's wrapper puts the header banner before it).
+- Course keys come from the full Gecko values. `upgradeCourseKeys()` moves course choices saved against an older list onto the current one; keep it when the lists change.

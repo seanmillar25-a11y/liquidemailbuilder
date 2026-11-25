@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0 · 2026-11-25
+
+- **Phone view.** Switch between Desktop and Phone at the top to see the email about 375px wide, the way most people read it. Image + text rows stack as they would on a phone. Still do a Gecko test send to check it on a real phone.
+- **Preview text.** A new block for the grey line inboxes show after the subject. It always goes at the top, doesn't appear in the email itself, and can vary by course, domicile or field like any other block. Checks warn if it isn't first or is very long.
+- **Back up and restore.** Menu (⋯) → Back up all my work downloads every saved email and sequence in one file. Restore from a backup adds them back on any computer or browser, and never overwrites what's already there.
+- **Real UG course list.** UG courses now use the Gecko dropdown values, including the Year 3 entry routes. Emails saved with the old list keep their course choices.
+- Text boxes are marked as UK English for the spellchecker, and the boxes for course lists and pasted code are no longer spellchecked.
+
 ## 1.6.0 · 2026-11-25
 
 - **Sequences.** Work on a series of emails (Email 1, Email 2, …) as tabs above the email. Each tab shows its number of Checks issues, or whether it has been copied to Gecko (✓), changed since copying (●) or not copied yet (○). Drag tabs or use the ⋯ menu to reorder, duplicate or remove.

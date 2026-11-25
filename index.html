@@ -17,7 +17,7 @@
 
   Before releasing a change: open the page, Menu → Run self-test, then do a Gecko test send.
 -->
-<html lang="en">
+<html lang="en-GB">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -54,6 +54,7 @@ svg{display:block}
 .viewer-pill .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px}
 .viewer-pill .txt b{font-weight:600}
 .spacer{flex:1}
+.top>.tb,.top>.primary,.top>.lvl,.top>.icon{flex:none;white-space:nowrap}
 .tb{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);background:#fff;border-radius:9px;padding:6px 11px;font-weight:600;font-size:13.5px}
 .tb:hover{border-color:var(--ink3)}
 .tb .badge-n{min-width:18px;height:18px;border-radius:9px;background:var(--warn-bg);color:var(--warn);font-size:11px;display:grid;place-items:center;padding:0 5px}
@@ -115,6 +116,13 @@ svg{display:block}
 .dropline::before{content:"";position:absolute;left:-5px;top:-4px;width:11px;height:11px;border-radius:50%;background:var(--accent-d)}
 .empty-drop{border:2px dashed var(--line2);border-radius:12px;padding:60px 20px;text-align:center;color:var(--ink3)}
 .empty-drop b{display:block;color:var(--ink2);font-size:16px;margin-bottom:4px}
+.paper.phone{padding:18px 12px 30px}
+.paper.phone .stack-col{display:block!important;width:100%!important;max-width:100%!important;padding:0 0 12px 0!important}
+.paper.phone .stack-col img{max-width:100%!important}
+.paper.phone .paper-banner{height:30px;margin-bottom:14px}
+.device-note{font-size:12px;color:var(--ink3);text-align:center;margin:0 0 8px}
+.inbox-line{border:1px dashed var(--line2);border-radius:8px;padding:8px 10px;font-family:'Source Sans 3',system-ui,sans-serif;font-size:13px;color:#5f6368;background:#fafafa;margin:0 0 18px}
+.inbox-line b{color:var(--ink);font-weight:600;margin-right:6px}
 .paper.over .empty-drop{border-color:var(--accent-d);background:var(--accent-bg)}
 
 
@@ -280,6 +288,7 @@ table.kw th{color:var(--ink3);font-weight:600}
     <span class="eye"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>
     <span class="txt" id="viewerTxt">Viewing as…</span>
   </button>
+  <div class="lvl" id="deviceSeg" title="See the email as it looks on a computer or a phone"><button data-d="desktop">Desktop</button><button data-d="phone">Phone</button></div>
   <div class="spacer"></div>
   <button class="tb" id="btnChecks">Checks <span class="badge-n" id="checkCount">0</span></button>
   <button class="tb" id="btnCode"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></svg>Code</button>
@@ -293,6 +302,10 @@ table.kw th{color:var(--ink3);font-weight:600}
     <hr>
     <button data-m="library"><span>Save / open<small>Team library and saved emails</small></span></button>
     <button data-m="settings"><span>Team lists &amp; settings<small>Courses, regions, saved links, tracking</small></span></button>
+    <hr>
+    <button data-m="backup"><span>Back up all my work<small>Download every saved email and sequence in one file</small></span></button>
+    <button data-m="restore"><span>Restore from a backup<small>Add the emails and sequences from a backup file</small></span></button>
+    <input type="file" id="restoreFile" accept=".json,application/json" hidden>
     <hr>
     <button data-m="selftest"><span>Run self-test<small>Check the course rules and Liquid output</small></span></button>
     <div style="font-size:11.5px;color:var(--ink3);padding:6px 10px 2px">Liquid Email Builder <span id="appVersion"></span></div>
@@ -317,6 +330,7 @@ table.kw th{color:var(--ink3);font-weight:600}
     <div class="stage-inner">
       <div id="seqbar" class="seqbar off"></div>
       <div id="importReport" class="report" hidden></div>
+      <div class="device-note" id="deviceNote" hidden>Phone view, about 375px wide. Do a Gecko test send to check it on a real phone.</div>
       <div class="paper" id="paper">
         <div class="paper-banner">Gecko header banner</div>
         <div id="canvas"></div>
@@ -361,7 +375,7 @@ table.kw th{color:var(--ink3);font-weight:600}
       <div class="sect">
         <h3 id="setCourseTitle">Courses</h3>
         <p>One course per line, using the real Gecko dropdown values. You can paste Gecko's option export as it is (<code>Value|Label|hidden</code>): courses marked <code>hidden</code> stay in the matching rules but aren't offered when choosing courses. The tool picks single-word keywords that no other course shares (this gets round Gecko's hidden-character bug) and checks sub-variants first. To set keywords yourself: <code>Law =&gt; law</code>.</p>
-        <textarea id="setCourses"></textarea>
+        <textarea id="setCourses" spellcheck="false"></textarea>
       </div>
       <div class="sect">
         <h3>Keyword check</h3>
@@ -374,17 +388,17 @@ table.kw th{color:var(--ink3);font-weight:600}
       <div class="sect">
         <h3>Domicile regions</h3>
         <p>One region per line: <code>Region name: keyword, keyword</code>. Use single words only. Anyone who matches none of these counts as <b>International</b>.</p>
-        <textarea id="setDom" style="min-height:90px"></textarea>
+        <textarea id="setDom" spellcheck="false" style="min-height:90px"></textarea>
       </div>
       <div class="sect">
         <h3>Saved links</h3>
         <p>Approved links the team can pick from (button links, image links, and "Saved link" in the text toolbar). One per line: <code>Name | URL</code>.</p>
-        <textarea id="setLinks" style="min-height:110px"></textarea>
+        <textarea id="setLinks" spellcheck="false" style="min-height:110px"></textarea>
       </div>
       <div class="sect">
         <h3>Saved snippets</h3>
         <p>Standard wording to insert from the text toolbar, e.g. contact lines. One per line: <code>Name | text</code>. Use <code>\n</code> for a line break.</p>
-        <textarea id="setSnips" style="min-height:110px"></textarea>
+        <textarea id="setSnips" spellcheck="false" style="min-height:110px"></textarea>
       </div>
       <div class="sect">
         <h3>Link tracking (UTM)</h3>
@@ -443,7 +457,7 @@ table.kw th{color:var(--ink3);font-weight:600}
       </div>
       <div class="sect">
         <h3>Open from project code</h3>
-        <textarea id="libPaste" placeholder="Paste project code here, or choose a .json / .txt file below" style="min-height:90px"></textarea>
+        <textarea id="libPaste" spellcheck="false" placeholder="Paste project code here, or choose a .json / .txt file below" style="min-height:90px"></textarea>
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
           <input type="file" id="libFile" accept=".json,.txt,application/json,text/plain">
           <button class="btn dark" id="libLoad" style="margin-left:auto">Open</button>
@@ -514,7 +528,7 @@ table.kw th{color:var(--ink3);font-weight:600}
     <div class="modal-head"><h2>Edit an existing Liquid template</h2><button class="icon-btn" data-close>✕</button></div>
     <div class="modal-body">
       <p style="margin-top:0;font-size:14px">Open the email template in Gecko, copy all of its HTML and paste it below. Emails made in this builder re-open exactly. For older templates, the builder reads the course and domicile logic and rebuilds the blocks. Anything it can't convert is kept as Custom HTML.</p>
-      <textarea id="importSrc" placeholder="Paste the template HTML here" style="width:100%;min-height:220px;border:1px solid var(--line2);border-radius:8px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:12px"></textarea>
+      <textarea id="importSrc" spellcheck="false" placeholder="Paste the template HTML here" style="width:100%;min-height:220px;border:1px solid var(--line2);border-radius:8px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:12px"></textarea>
       <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
         <input type="file" id="importFile" accept=".html,.htm,.txt,.liquid">
         <label style="font-size:13px;display:flex;gap:6px;align-items:center;margin-left:auto">Course list to match against:
@@ -543,7 +557,7 @@ table.kw th{color:var(--ink3);font-weight:600}
 'use strict';
 
 /* ---------------- Defaults ---------------- */
-const APP_VERSION='1.6.0';
+const APP_VERSION='1.7.0';
 const DEFAULT_PG = `Accounting and Finance (CIMA Gateway) MSc
 Applied Artificial Intelligence & User Experience MSc
 Biomedical Sciences MSc
@@ -580,41 +594,58 @@ Structural Engineering MSc
 Technical Art and Visual Effects MSc
 Water and Environmental Management MSc`;
 
-const DEFAULT_UG = `Accounting and Finance
-Biomedical Science
-Business Management
-Civil and Environmental Engineering
-Computer Arts
-Computer Game Application Development
-Computer Games Technology
-Computer Science
-Computing
-Criminology
-Digital Marketing and Business Management
-Digital Marketing with Events Management
-Engineering Management
-Environmental Management and Sustainability
-Ethical Hacking
-Fitness, Nutrition and Health
-Food and Consumer Science
-Food Science, Nutrition and Wellbeing
-Food, Nutrition and Health
-Forensic Sciences
-Game Design and Production
-Law
-Law Accelerated Graduate Entry LLB
-Law with Criminology
-Marketing
-Marketing and Business Management
-Mental Health Nursing
-Physical Activity and Health
-Psychology
-Sport and Exercise
-Sport and Exercise Science
-Sport and Management
-Sports Development and Coaching
-Strength and Conditioning
-Visual Effects for Games and Real-Time Media`;
+const DEFAULT_UG = `Accounting and Finance BSc (Hons)|Accounting and Finance BSc (Hons)
+Accounting and Finance BA (Hons) - Year 3 entry only|Accounting and Finance BA (Hons)
+Accounting and Finance with Business Analytics BA (Hons) - Year 3 entry only|Accounting and Finance with Business Analytics BA (Hons)
+Accounting and Finance with Law BA (Hons) - Year 3 entry only|Accounting and Finance with Law BA (Hons)
+Accounting and Finance with People Management BA (Hons) - Year 3 entry only|Accounting and Finance with People Management BA (Hons)
+Biomedical Science BSc (Hons)|Biomedical Science BSc (Hons)
+Business Management BA (Hons)|Business Management BA (Hons)
+Business Management BA (Hons) - Year 3 entry only|Business Management BA (Hons)
+Business Management with Analytics BA (Hons) - Year 3 entry only|Business Management with Analytics BA (Hons)
+Business Management with Events Management BA (Hons) - Year 3 entry only|Business Management with Events Management BA (Hons)
+Business Management with People Management BA (Hons) - Year 3 entry only|Business Management with People Management BA (Hons)
+Civil and Environmental Engineering MEng/BEng (Hons)|Civil and Environmental Engineering MEng/BEng (Hons)
+Computer Arts BA (Hons)|Computer Arts BA (Hons)
+Computer Game Applications Development BSc (Hons)|Computer Game Applications Development BSc (Hons)
+Computer Games Technology BSc (Hons)|Computer Games Technology BSc (Hons)
+Computer Science BSc (Hons)|Computer Science BSc (Hons)
+Computer Science with Cybersecurity BSc (Hons)|Computer Science with Cybersecurity BSc (Hons)
+Computing BSc (Hons)|Computing BSc (Hons)
+Criminology BA (Hons)|Criminology BA (Hons)
+Criminology and Policing BA (Hons)|Criminology and Policing BA (Hons)
+Criminology and Sociology BA (Hons)|Criminology and Sociology BA (Hons)
+Digital Marketing and Business Management BA (Hons) - Year 3 entry only|Digital Marketing and Business Management BA (Hons)
+Digital Marketing with Events Management BA (Hons) - Year 3 entry only|Digital Marketing with Events Management BA (Hons)
+Engineering Management BSc (Hons)|Engineering Management BSc (Hons)
+Environmental Management & Sustainability BSc (Hons)|Environmental Management & Sustainability BSc (Hons)
+Ethical Hacking BSc (Hons)|Ethical Hacking BSc (Hons)
+Fitness, Nutrition and Health BSc (Hons)|Fitness, Nutrition and Health BSc (Hons)
+Food and Consumer Science BSc (Hons)|Food and Consumer Science BSc (Hons)
+Food Science, Nutrition and Wellbeing BSc (Hons)|Food Science, Nutrition and Wellbeing BSc (Hons)
+Food, Nutrition and Health BSc (Hons)|Food, Nutrition and Health BSc (Hons)
+Forensic Sciences BSc (Hons)|Forensic Sciences BSc (Hons)
+Game Design and Production BA (Hons)|Game Design and Production BA (Hons)
+Law LLB (Hons)|Law LLB (Hons)
+Law - Accelerated Graduate Entry LLB|Law - Accelerated Graduate Entry LLB
+Law with Criminology LLB (Hons)|Law with Criminology LLB (Hons)
+Marketing BA (Hons)|Marketing BA (Hons)
+Marketing and Business Management BA (Hons) - Year 3 entry only|Marketing and Business Management BA (Hons)
+Mental Health Nursing BSc (Hons)|Mental Health Nursing BSc (Hons)
+Physical Activity and Health BSc (Hons)|Physical Activity and Health BSc (Hons)
+Psychology BSc (Hons)|Psychology BSc (Hons)
+Psychology and Counselling BSc (Hons)|Psychology and Counselling BSc (Hons)
+Psychology w. Forensic & Investigative Psychology BSc (Hons)|Psychology w. Forensic & Investigative Psychology BSc (Hons)
+Psychology with Development and Education BSc (Hons)|Psychology with Development and Education BSc (Hons)
+Psychology with Forensic Scene Investigation BSc (Hons)|Psychology with Forensic Scene Investigation BSc (Hons)
+Psychology with Health Sciences BSc (Hons)|Psychology with Health Sciences BSc (Hons)
+Sport and Exercise BSc (Hons)|Sport and Exercise BSc (Hons)
+Sport and Exercise Science BSc (Hons)|Sport and Exercise Science BSc (Hons)
+Sport and Management BA (Hons)|Sport and Management BA (Hons)
+Sports Development and Coaching BSc (Hons)|Sports Development and Coaching BSc (Hons)
+Strength and Conditioning BSc (Hons)|Strength and Conditioning BSc (Hons)
+Visual Effects for Games and Real-Time Media BSc (Hons)|Visual Effects for Games and Real-Time Media BSc (Hons)
+I'm not sure yet|I'm not sure yet`;
 
 const DEFAULT_DOM = `Scotland: scotland
 Rest of UK (England, Wales, NI): england, wales, northern
@@ -726,6 +757,34 @@ function computeCourses(text){
 }
 function classifyCourse(value,comp){const n=norm(value);if(!n)return null;for(const i of comp.order){if(matchAll(comp.items[i].kws,n))return comp.items[i].key;}return null;}
 
+/* Course choices saved against an older course list (e.g. "accounting-and-finance" before the list used the
+   full Gecko names, "accounting-and-finance-bsc-hons") are moved onto the matching course in the current list. */
+function upgradeCourseKey(key,C){
+  if(C.byKey[key]) return key;
+  const words=String(key).replace(/-\d+$/,'').replace(/-/g,' ');
+  // the course whose name has every word of the old one and the fewest extra words, else the keyword rules
+  const old=tokens(words);
+  const close=(a,b)=>a===b||(a.length>=5&&b.length>=5&&(a.startsWith(b)||b.startsWith(a)));
+  const fits=old.length?C.items.filter(i=>old.every(t=>i.tokens.some(u=>close(t,u)))):[];
+  fits.sort((a,b)=>a.tokens.length-b.tokens.length);
+  return fits.length?fits[0].key:classifyCourse(words,C);
+}
+function upgradeCourseKeys(st){
+  if(!st||!Array.isArray(st.blocks)) return;
+  let C=null;
+  st.blocks.forEach(b=>{
+    const sp=b.split&&b.split.course; if(!sp||!Array.isArray(sp.variants)) return;
+    sp.variants.forEach(v=>{
+      if(!Array.isArray(v.targets)) return;
+      if(!C) C=computeCourses(st.level==='ug'?st.settings.ugCourses:st.settings.pgCourses);
+      if(v.targets.every(k=>C.byKey[k])) return;
+      const out=[];
+      v.targets.forEach(k=>{const n=upgradeCourseKey(k,C)||k;if(!out.includes(n))out.push(n);});
+      v.targets=out;
+    });
+  });
+}
+
 function parseDom(text){
   const groups=[];const seen={};
   for(const raw of String(text).split('\n')){
@@ -744,6 +803,7 @@ function classifyDom(value,groups){const n=norm(value);for(const g of groups){if
 
 /* ---------------- State ---------------- */
 const blankContent={
+  preview:()=>({text:''}),
   heading:()=>({text:''}),
   text:()=>({text:''}),
   image:()=>({src:'',alt:'',href:''}),
@@ -755,7 +815,7 @@ const blankContent={
   spacer:()=>({size:'medium'}),
   html:()=>({code:''})
 };
-const TYPE_NAME={heading:'Heading',text:'Text',image:'Image',button:'Button',list:'Bullet list',callout:'Highlight box',twocol:'Image + text',divider:'Divider',spacer:'Spacer',html:'Custom HTML'};
+const TYPE_NAME={preview:'Preview text',heading:'Heading',text:'Text',image:'Image',button:'Button',list:'Bullet list',callout:'Highlight box',twocol:'Image + text',divider:'Divider',spacer:'Spacer',html:'Custom HTML'};
 const NO_SPLIT=new Set(['divider','spacer']);
 function newBlock(type,label,content){return {id:uid(),type,label:label||TYPE_NAME[type],mode:'all',content:content||blankContent[type](),split:{}};}
 function ensureSplit(b,mode){
@@ -791,7 +851,7 @@ function example(level){
     sp.variants.push(variant([k('Biomedical Sciences with Industrial'),k('Biomedical Sciences MSc')],{text:"Taking on your master's degree in **Biomedical Sciences** at Abertay University is a great choice, especially because we're the Top Modern University in Scotland (Guardian University Guide 2026)."}));
   } else {
     const comp=computeCourses(s.settings.ugCourses);
-    const k=n=>(comp.items.find(i=>i.name===n)||{}).key;
+    const k=n=>upgradeCourseKey(slug(n),comp);
     sp.variants.push(variant([k('Law'),k('Law with Criminology'),k('Law Accelerated Graduate Entry LLB')],{text:"Studying **Law** at Abertay University is a great choice, especially because we're the Top Modern University in Scotland (Guardian University Guide 2026)."}));
     sp.variants.push(variant([k('Ethical Hacking')],{text:"Abertay was the first university in the world to launch an Ethical Hacking degree."}));
   }
@@ -940,8 +1000,17 @@ function tagUrl(u,ctx){
   const hashAt=u.indexOf('#');const base=hashAt>=0?u.slice(0,hashAt):u, hash=hashAt>=0?u.slice(hashAt):'';
   return base+(base.includes('?')?'&':'?')+q.map(([k,v])=>k+'='+encodeURIComponent(v)).join('&')+hash;
 }
+/* Preview text: the line inboxes show after the subject. It's hidden in the email itself, and followed by
+   invisible spacing so the inbox doesn't carry on into the first words of the email. */
+const PREVIEW_PAD=Array(90).fill('&#847;&zwnj;&nbsp;').join('');
 function renderBlockHTML(type,c,ctx){
   c=c||{};
+  if(type==='preview'){
+    const raw=String(c.text||'').replace(/\s+/g,' ').trim();if(!raw)return '';
+    const txt=inline(raw.replace(/\*\*/g,'').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1'),Object.assign({},ctx,{utm:null}));
+    if(ctx.preview) return `<div class="inbox-line"><b>Inbox preview</b>${txt}</div>`;
+    return `<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;color:#ffffff;">${txt}</div><div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${PREVIEW_PAD}</div>`;
+  }
   if(type==='heading'){ if(!String(c.text||'').trim())return ''; return `<h3 style="${ST.h}">${inline(c.text.trim(),ctx)}</h3>`; }
   if(type==='text'){
     const paras=String(c.text||'').split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean);
@@ -1029,6 +1098,7 @@ function utmCfg(){
 function fieldVar(ref){return (isResp(ref)?'r_':'f_')+String(ref).replace(/^response\./,'').toLowerCase().replace(/[^a-z0-9_]/g,'_');}
 function matchWords(m){return String(m||'').toLowerCase().split(/[\s,]+/).map(x=>x.replace(/[^a-z0-9]/g,'')).filter(Boolean);}
 function generate(){
+  upgradeCourseKeys(state);
   const utm=utmCfg();
   const L=[`{%- comment -%} Made with Liquid Email Builder v${APP_VERSION} {%- endcomment -%}`];
   const needCourse=state.blocks.some(b=>b.mode==='course');
@@ -1186,6 +1256,7 @@ const SHELL_BOTTOM=`                      </div>
 
 /* ================= New UI: rail · canvas · inspector ================= */
 const ICONS={
+  preview:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
   heading:'<path d="M5 5v14M15 5v14M5 12h10M19 19v-6l-2 1"/>',
   text:'<path d="M4 6h16M4 10h16M4 14h12M4 18h9"/>',
   list:'<circle cx="5" cy="7" r="1.3" fill="currentColor"/><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="5" cy="17" r="1.3" fill="currentColor"/><path d="M9 7h11M9 12h11M9 17h11"/>',
@@ -1200,12 +1271,16 @@ const ICONS={
 };
 const icon=(t,s=18)=>{const d=document.createElement('span');d.innerHTML=`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[t]||ICONS.text}</svg>`;return d.firstChild;};
 const PALETTE=[
-  ['Text',[['heading','Heading'],['text','Text'],['list','List'],['callout','Highlight']]],
+  ['Text',[['heading','Heading'],['text','Text'],['list','List'],['callout','Highlight'],['preview','Preview text']]],
   ['Images',[['hero','Hero image'],['image','Image'],['twocol','Image + text']]],
   ['Action',[['button','Button']]],
   ['Layout',[['divider','Divider'],['spacer','Spacer'],['html','HTML']]]
 ];
 const MODE_LABEL={all:'Everyone',course:'By course',domicile:'By domicile',field:'By field'};
+
+/* ---------- Desktop / Phone preview (remembered in this browser) ---------- */
+const PHONE_W=375;
+let DEVICE=load('leb.device')==='phone'?'phone':'desktop';
 
 /* ---------- viewer (preview contact) ---------- */
 let viewer={course:'',dom:'Scotland',name:'Jamie',fields:{}};
@@ -1334,7 +1409,10 @@ function renderRail(){
 /* ---------- canvas ---------- */
 function renderCanvas(){
   const cv=$('#canvas'); if(!cv) return;
-  document.documentElement.style.setProperty('--email-w',(layout().W+40)+'px');
+  const phone=DEVICE==='phone';
+  document.documentElement.style.setProperty('--email-w',(phone?PHONE_W+24:layout().W+40)+'px');
+  $('#paper').classList.toggle('phone',phone);$('#deviceNote').hidden=!phone;
+  document.querySelectorAll('#deviceSeg button').forEach(x=>x.classList.toggle('on',x.dataset.d===DEVICE));
   const {ckey,dkey,fv}=viewerKeys(); const utm=utmCfg();
   cv.innerHTML='';
   if(!state.blocks.length){cv.appendChild(h('div',{class:'empty-drop'},h('b',null,'Drag blocks here'),'or choose a structure from the ⋯ menu → New email'));return;}
@@ -1410,6 +1488,11 @@ function toastUndo(msg){
 function addBlock(t,at){
   if(at==null) at=state.blocks.length;
   let b;
+  if(t==='preview'){
+    const have=state.blocks.find(x=>x.type==='preview');
+    if(have){select(have.id);refresh(true);toast('This email already has preview text');return;}
+    at=0; // inboxes only use it if it's the first thing in the email
+  }
   if(t==='hero'){
     b=newBlock('image','Hero image',{src:'',alt:'',href:''});
     b.mode='course';const sp=ensureSplit(b,'course');sp.variants.push(variant([],blankContent.image()));
@@ -1543,6 +1626,7 @@ function closeFloaters(except){
 
 /* ---------------- Checks ---------------- */
 function collectChecks(){
+  upgradeCourseKeys(state);
   const C=comp(),G=domGroups();
   const out=[];let n=0;
   let cur=null;
@@ -1554,6 +1638,11 @@ function collectChecks(){
     cur=idx;
     const t=`<b>${idx+1}. ${esc(b.label||TYPE_NAME[b.type])}</b>`;
     const versions=b.mode==='all'?[b.content]:[...ensureSplit(b,b.mode).variants.map(v=>v.content),ensureSplit(b,b.mode).fallback.hide?null:ensureSplit(b,b.mode).fallback.content].filter(Boolean);
+    if(b.type==='preview'){
+      if(idx>0) add('warn',`${t}: move this to the top of the email. Inboxes only use preview text when it comes first.`);
+      const long=versions.some(c=>String(c.text||'').trim().length>140);
+      if(long) add('info',`${t}: is quite long. Most inboxes only show about 90 characters.`);
+    }
     if(b.type==='image'||b.type==='twocol'){
       const miss=versions.filter(c=>String(c.src||'').trim()&&!String(c.alt||'').trim()).length;
       if(miss) add('bad',`${t}: ${miss>1?miss+' images are':'an image is'} missing alt text. Describe the image so it makes sense when images are blocked or read aloud.`);
@@ -1709,6 +1798,8 @@ function fieldEl(label,obj,key,opts){
   return wrap;
 }
 function fieldsFor(type,c){
+  if(type==='preview') return [fieldEl('Preview text',c,'text',{multi:true,rows:2,ph:'e.g. {first_name}, here’s what happens next with your application'}),
+    h('div',{style:'font-size:12px;color:var(--ink3);margin-top:-4px'},'The grey line inboxes show after the subject. It doesn’t appear in the email itself. Most inboxes show about 90 characters. You can use {first_name}.')];
   if(type==='heading') return [fieldEl('Heading text',c,'text',{multi:true,rows:1})];
   if(type==='text') return [fieldEl('Text',c,'text',{multi:true,rows:5,toolbar:true})];
   if(type==='image') return [fieldEl('Image URL (Gecko upload link)',c,'src',{ph:'https://gecko-uploads.s3.amazonaws.com/…'}),fieldEl('Alt text (describe the image)',c,'alt'),fieldEl('Link the image to (optional)',c,'href',{ph:'https://',url:true})];
@@ -2498,6 +2589,46 @@ async function download(filename,data){
   }catch(e){toast("Couldn't download the file");}
 }
 
+/* ---- Back up and restore: every saved email and sequence in one file ----
+   Restoring only adds. Anything with the same name but different content is kept as "… (restored)", so nothing is overwritten. */
+function makeBackup(){
+  if(SEQ)seqSync();
+  return {lebBackup:1,app:APP_VERSION,created:new Date().toISOString(),current:emailEntry(state),library:libGet(),sequences:clone(SEQS)};
+}
+function backupDownload(){
+  const b=makeBackup();
+  const n=Object.keys(b.library).length,q=b.sequences.length;
+  download(`email-builder-backup-${b.created.slice(0,10)}.json`,JSON.stringify(b));
+  toast(`Backed up ${n} saved email${n===1?'':'s'} and ${q} sequence${q===1?'':'s'}`);
+}
+function mergeBackup(library,seqs,j){
+  const lib=clone(library||{}),out=clone(seqs||[]);let emails=0,sequences=0;
+  const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  const freeName=(base,taken)=>{let n=base+' (restored)',i=2;while(taken(n))n=`${base} (restored ${i++})`;return n;};
+  Object.entries(j.library||{}).forEach(([name,entry])=>{
+    if(!entry||!entry.data||!Array.isArray(entry.data.blocks))return;
+    if(!lib[name]){lib[name]=entry;emails++;return;}
+    if(same(lib[name].data.blocks,entry.data.blocks)||Object.values(lib).some(e=>e&&e.data&&same(e.data.blocks,entry.data.blocks)))return;
+    lib[freeName(name,n=>!!lib[n])]=entry;emails++;
+  });
+  const cur=j.current;
+  if(cur&&Array.isArray(cur.blocks)&&cur.blocks.length&&!Object.values(lib).some(e=>e&&e.data&&same(e.data.blocks,cur.blocks))
+     &&!out.concat(j.sequences||[]).some(s=>(s.emails||[]).some(e=>same(e.blocks,cur.blocks)))){
+    const base=(cur.name||'Untitled email').trim();
+    lib[lib[base]?freeName(base,n=>!!lib[n]):base]={saved:Date.now(),data:cur};emails++;
+  }
+  (j.sequences||[]).forEach(sq=>{
+    if(!sq||!Array.isArray(sq.emails)||!sq.emails.length)return;
+    const strip=s=>s.emails.map(e=>e.blocks);
+    if(out.some(s=>same(strip(s),strip(sq))))return;
+    const copy=clone(sq);
+    if(out.some(s=>s.id===copy.id)){copy.id=uid();copy.name=freeName(copy.name||'Sequence',n=>out.some(s=>s.name===n));}
+    copy.active=Math.min(copy.active||0,copy.emails.length-1);
+    out.push(copy);sequences++;
+  });
+  return {library:lib,seqs:out,emails,sequences};
+}
+
 /* ---- Self-test: re-checks the logic that matters before anyone relies on a new version ---- */
 function loadScript(srcs,globalName){
   if(window[globalName]) return Promise.resolve(window[globalName]);
@@ -2541,6 +2672,30 @@ async function selfTest(){
       add('Email layout','The whole button is clickable (the link fills the button)',/<a [^>]*display:block;[^>]*line-height:50px/.test(btn)&&!/<a[^>]*padding:\d+px \d+px/.test(btn));
       const em=renderBlockHTML('text',{text:'Find out more by clicking the link below 👇'},{liquid:true});
       add('Email layout','Emoji use an emoji font, so Outlook on Windows shows them',/<span style="font-family:'Segoe UI Emoji'[^"]*">👇<\/span>/.test(em),esc(em));
+      const pv=renderBlockHTML('preview',{text:'Hi {first_name}, your **offer** is [here](https://www.abertay.ac.uk/)'},{liquid:true});
+      add('Preview text','Is hidden in the email, merges the first name and drops links and bold',/^<div style="display:none;[^"]*mso-hide:all;[^"]*">Hi \{\{ contact\.full_name\.first_name \| default: 'there' \}\}, your offer is here<\/div><div style="display:none;[^"]*">(&#847;&zwnj;&nbsp;)+<\/div>$/.test(pv),esc(pv));
+      const keep=state;
+      state=Object.assign(clone(saved),{blocks:[newBlock('text','Copy',{text:'Hello'}),newBlock('preview','Preview text',{text:'Inbox line'})]});
+      const warned=collectChecks().out.some(o=>o.includes('Inboxes only use preview text when it comes first'));
+      state=keep;
+      add('Preview text','Checks warn when preview text isn’t the first block',warned);
+    }
+    {
+      const e1={name:'One',level:'pg',blocks:[newBlock('text','A',{text:'one'})]},e2={name:'Two',level:'pg',blocks:[newBlock('text','B',{text:'two'})]};
+      const bk={lebBackup:1,current:e2,library:{One:{saved:1,data:e1}},sequences:[{id:'s1',name:'Seq',active:0,emails:[e1]}]};
+      const r1=mergeBackup({},[],bk);
+      add('Back up and restore','Restoring into an empty browser brings back every email and sequence',r1.library.One&&r1.library.Two&&r1.seqs.length===1&&r1.emails===2&&r1.sequences===1,JSON.stringify({e:r1.emails,s:r1.sequences}));
+      const r2=mergeBackup(r1.library,r1.seqs,bk);
+      add('Back up and restore','Restoring the same backup twice adds nothing',r2.emails===0&&r2.sequences===0&&Object.keys(r2.library).length===2&&r2.seqs.length===1);
+      const changed={One:{saved:2,data:Object.assign(clone(e1),{blocks:[newBlock('text','A',{text:'changed'})]})}};
+      const r3=mergeBackup(r1.library,r1.seqs,{lebBackup:1,library:changed});
+      add('Back up and restore','An email with the same name but different content is kept as a copy, not overwritten',r3.library.One.data.blocks[0].content.text==='one'&&r3.library['One (restored)']&&r3.library['One (restored)'].data.blocks[0].content.text==='changed');
+    }
+    {
+      const C=computeCourses(DEFAULT_UG);
+      const pairs=[['accounting-and-finance','Accounting and Finance BSc (Hons)'],['marketing-and-business-management','Marketing and Business Management BA (Hons) - Year 3 entry only'],['law','Law LLB (Hons)'],['computer-game-application-development','Computer Game Applications Development BSc (Hons)']];
+      const wrong=pairs.filter(([k,n])=>{const g=upgradeCourseKey(k,C);return !g||C.byKey[g].name!==n;}).map(([k])=>k);
+      add('Course matching','UG emails saved with the old course list keep their course choices',!wrong.length,wrong.map(esc).join(', '));
     }
     {
       const want={'Programme / variant':'ignore','Header image src':'ignore','Other image srcs (all)':'ignore','Intro copy':'text','CTA prompt':'bprompt','Primary link URL':'burl','Hero image':'image','Hero/secondary image src':'image','Secondary link URL':'ignore','Next-step heading':'heading'};
@@ -2550,11 +2705,11 @@ async function selfTest(){
       add('Matrix import','A button with a link but no text still appears, as “Find out more”',/>Find out more<\/a>/.test(bt));
     }
     // 2. save and re-open
-    const kinds=[['example-pg','PG example'],['example-ug','UG example'],['s-course','Course email structure'],['s-domicile','Domicile email structure'],['s-news','Event / newsletter structure']];
+    const kinds=[['preview-text','Email with preview text by course'],['example-pg','PG example'],['example-ug','UG example'],['s-course','Course email structure'],['s-domicile','Domicile email structure'],['s-news','Event / newsletter structure']];
     const codes=[];
     for(const [k,label] of kinds){
       state=clone(saved);
-      state=k.startsWith('example')?example(k==='example-ug'?'ug':'pg'):structure(k);
+      state=k.startsWith('example')?example(k==='example-ug'?'ug':'pg'):k==='preview-text'?(()=>{const e=example('pg');const pb=newBlock('preview','Preview text',{text:'Hi {first_name}, a quick update'});pb.mode='course';const sp=ensureSplit(pb,'course');sp.variants.push(variant([e.blocks[1].split.course.variants[0].targets[0]],{text:'Your Cyber Law course 👇'}));e.blocks.unshift(pb);return e;})():structure(k);
       state.settings=withDefaults(clone(saved.settings));
       const a=generate();codes.push([label,a]);
       const r=importLiquid(a); state=r.email; state.settings=withDefaults(clone(saved.settings));
@@ -2788,6 +2943,27 @@ $('#menu').addEventListener('click',e=>{
   if(k==='library')$('#btnLibrary').click();
   if(k==='settings')$('#btnSettings').click();
   if(k==='selftest')runSelfTestUI();
+  if(k==='backup')backupDownload();
+  if(k==='restore'){$('#restoreFile').value='';$('#restoreFile').click();}
+});
+$('#deviceSeg').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;DEVICE=b.dataset.d;store('leb.device',DEVICE);renderCanvas();});
+$('#restoreFile').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    let j=null;try{j=JSON.parse(r.result);}catch(x){}
+    if(!j||!j.lebBackup){toast("That isn't a backup file from this tool");return;}
+    seqSync();
+    const res=mergeBackup(libGet(),SEQS,j);
+    store('leb.library',res.library);SEQS=res.seqs;seqPersist();
+    if(!SEQ&&!state.blocks.length&&j.current&&Array.isArray(j.current.blocks)){
+      const em=clone(j.current);em.settings=withDefaults(em.settings||clone(state.settings));state=em;sel={id:null,ver:null};fillTestSelectors();renderAll();
+    }
+    renderSeqBar();
+    const parts=[];if(res.emails)parts.push(`${res.emails} email${res.emails>1?'s':''}`);if(res.sequences)parts.push(`${res.sequences} sequence${res.sequences>1?'s':''}`);
+    toast(parts.length?`Restored ${parts.join(' and ')}. Find them in Save / open`:'Nothing new to restore. You already have everything in that backup');
+  };
+  r.readAsText(f);
 });
 document.addEventListener('click',()=>closeFloaters());
 $('#vCourseSel').addEventListener('change',e=>{viewer.course=e.target.value;viewer._typed=false;$('#vCourse').value=viewer.course;sel.ver=null;viewerChanged(false);});
@@ -2845,7 +3021,7 @@ async function checkForUpdate(){
 setTimeout(checkForUpdate,1500);
 setInterval(checkForUpdate,10*60*1000);
 window.addEventListener('focus',()=>{if(!checkForUpdate._t||Date.now()-checkForUpdate._t>60000){checkForUpdate._t=Date.now();checkForUpdate();}});
-window.__leb={generate,importLiquid,get state(){return state;},select,addBlock,get viewer(){return viewer;},selfTest,version:APP_VERSION};
+window.__leb={generate,importLiquid,computeCourses,classifyCourse,upgradeCourseKey,get state(){return state;},select,addBlock,get viewer(){return viewer;},selfTest,version:APP_VERSION};
 })();
 </script>
 </body>
